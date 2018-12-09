@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <!-- Load TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.13.3/dist/tf.min.js"> </script>
+</head>
+<body>
+      <div id="predictions"></div>
+  cat here <img style="display: none" id="cat" src="cat.jpg" width=224 height=224 /> end
+Status: [<div id='status'>...</div>]
+
+<input type="file" onchange="previewFile()"><br>
+<img class=myclass src="" width="224" height="224" alt="Image preview...">
+
+
+<script type=module src="index.js?nocache=2"></script>
+<!--
+<script type=module>
+  import {previewFile} from "./index.js";
+  console.log("main");
+</script>
+-->
+
+
+
+</script>
+
+</body>
+</html>
+
