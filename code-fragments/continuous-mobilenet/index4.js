@@ -21,6 +21,8 @@ let last = new Date().getTime();
 let waiting = false;
 
 let tick = 0;
+let mymodel = null;
+
 function step() {
   if (! go_on) {
     return;
@@ -44,7 +46,7 @@ function step() {
 
   const img = tf.fromPixels(canvas).toFloat();
 
-  let t1 = new Date().getTime();
+
   waiting = true;
 
 
@@ -53,7 +55,16 @@ function step() {
     document.getElementById("p" + i).innerHTML = '??';
     document.getElementById("x" + i).value = 0;
   }
-  
+
+  if (mymodel == null) {
+    mobilenet.load().then(model => {
+        mymodel = model;
+        do_classify(img);
+      });
+  } else {
+    do_classify(img);
+  }
+  /*
   mobilenet.load().then(model => {
       let t2 = new Date().getTime();        
       model.classify(img).then(predictions => {
@@ -63,6 +74,18 @@ function step() {
           last = new Date().getTime();
           waiting = false;
         })});
+  */
+}
+
+function do_classify(img) {
+  let t2 = new Date().getTime();        
+  mymodel.classify(img).then(predictions => {
+      let t3 = new Date().getTime();
+      console.log('TIME', t3-t2);
+      showPredictions(predictions);
+      last = new Date().getTime();
+      waiting = false;
+    });
 }
 
 video.addEventListener('play', () => {
