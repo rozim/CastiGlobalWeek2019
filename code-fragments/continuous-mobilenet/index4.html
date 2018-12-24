@@ -8,6 +8,16 @@
   
 <style>
 
+#status {
+font-weight: bold;
+font-color: blue;
+align: bottom;
+margin: 25px;
+border: 3px #8FBC8F solid;
+padding: 10px;
+width: 50px;
+}
+
 .x-div {
     float: left;
     overflow: hidden;
@@ -15,8 +25,8 @@
 }
 
 .x-img {
-   width: 64;
-   height: 64;
+   width: 128;
+   height: 128;
 }
 
 .x-text {
@@ -44,6 +54,7 @@ video {
 #preds {
     float: left;
     overflow: hidden;
+    margin: 25px;
 }
 
 #canvas {
@@ -93,10 +104,12 @@ video {
       <td><progress id="x2" max=100></progress></td>
     </tr>
   </table>
+  <div id='status'>...</div>
 </div>
 
 <div style='clear:both'></div>
-<button onclick="speak();">Press to manually speak</button>
+<button id='speak-button', onclick="speak();">Press to manually speak</button>
+
 <div style='clear:both'></div>
 <div id="images">
 </div>

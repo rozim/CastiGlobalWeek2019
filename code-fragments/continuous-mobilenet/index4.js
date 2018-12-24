@@ -20,49 +20,60 @@ let hack;
 let last = new Date().getTime();
 let waiting = false;
 
-video.addEventListener('play', () => {
-  let tick = 0;
+let tick = 0;
+function step() {
+  if (! go_on) {
+    return;
+  }
+  //requestAnimationFrame(step);
 
-  function step() {
-    if (! go_on) {
-      return;
-    }
-    requestAnimationFrame(step);
+  tick += 1;
+  var now = new Date().getTime();
+  if ((now - last) < 5000) {
+    document.getElementById('status').innerHTML = 5 - Math.round((now - last)/1000);
+    return;
+  }
+  if (waiting) {
+    document.getElementById('status').innerHTML = 'busy';
+    return;
+  }
+  document.getElementById('status').innerHTML = '';
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  var myImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);    
+  console.log(tick, canvas.width, canvas.height, now-last, myImageData);
 
-    tick += 1;
-    var now = new Date().getTime();
-    if ((now - last) < 5000) {
-      return;
-    }
-    if (waiting) {
-      return;
-    }    
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    var myImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);    
-    console.log(tick, canvas.width, canvas.height, now-last, myImageData);
+  const img = tf.fromPixels(canvas).toFloat();
 
-    const img = tf.fromPixels(canvas).toFloat();
+  let t1 = new Date().getTime();
+  waiting = true;
 
-    let t1 = new Date().getTime();
-    waiting = true;    
-    mobilenet.load().then(model => {
-        let t2 = new Date().getTime();        
-        model.classify(img).then(predictions => {
-            let t3 = new Date().getTime();
-            console.log('TIME', t3-t2, t2-t1);
-            showPredictions(predictions);
-            last = new Date().getTime();
-            waiting = false;
-          })});
+
+  for (let i = 0; i < 3; i++) {
+    document.getElementById("c" + i).innerHTML = '?';
+    document.getElementById("p" + i).innerHTML = '??';
+    document.getElementById("x" + i).value = 0;
   }
   
-  requestAnimationFrame(step);
- }
+  mobilenet.load().then(model => {
+      let t2 = new Date().getTime();        
+      model.classify(img).then(predictions => {
+          let t3 = new Date().getTime();
+          console.log('TIME', t3-t2, t2-t1);
+          showPredictions(predictions);
+          last = new Date().getTime();
+          waiting = false;
+        })});
+}
+
+video.addEventListener('play', () => {
+    window.setInterval(step, 1000);
+  }
 );
 
 
 function speak() {
   speechSynthesis.speak(new SpeechSynthesisUtterance("hi"));
+  document.getElementById('speak-button').style.display = 'none';
 }
 
 function showPredictions(predictions) {
@@ -126,7 +137,7 @@ function showPredictions(predictions) {
   var newimg = document.createElement("img");
   newimg.className = "x-img";
   newimg.src = canvas.toDataURL();
-  newimg.width = newimg.height = 64;
+  newimg.width = newimg.height = 128;
   newdiv.appendChild(newimg);
   newdiv.appendChild(document.createElement("br"));
   const text = document.createElement("span");
