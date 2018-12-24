@@ -1,6 +1,11 @@
 
 
 const video = document.querySelector("#videoElement");
+video.addEventListener('play', () => {
+    window.setInterval(step, 1000);
+  }
+);
+
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 let  go_on = true;
@@ -88,10 +93,6 @@ function do_classify(img) {
     });
 }
 
-video.addEventListener('play', () => {
-    window.setInterval(step, 1000);
-  }
-);
 
 
 function speak() {
@@ -147,21 +148,34 @@ function showPredictions(predictions) {
   const xid = "id-" + cn;
   let update = true;
   let newdiv = document.getElementById(xid);
+
   if (newdiv == null) {
     update = false;
     console.log('new', xid);
     newdiv = document.createElement("div");
     newdiv.className = "x-div";
     newdiv.id = xid;
+    newdiv.bestClassName = bestClassName;    
   } else {
     console.log('update', xid);    
     newdiv.innerHTML = "";
   }
+
   var newimg = document.createElement("img");
+  newimg.addEventListener('click', () => {
+      console.log('click: ', newimg, newdiv);
+      pmap.delete(newdiv.bestClassName);      
+      newdiv.remove();
+    });
   newimg.className = "x-img";
   newimg.src = canvas.toDataURL();
   newimg.width = newimg.height = 128;
-  newdiv.appendChild(newimg);
+  
+  var newimgdiv = document.createElement("div");
+  newimgdiv.className = "x-img-wrap";
+  newimgdiv.appendChild(newimg);
+  
+  newdiv.appendChild(newimgdiv);
   newdiv.appendChild(document.createElement("br"));
   const text = document.createElement("span");
   text.className = "x-text";  
