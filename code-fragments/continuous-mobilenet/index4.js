@@ -106,6 +106,7 @@ function showPredictions(predictions) {
   console.log(predictions);
   const bestClassName = predictions[0].className;
   const bestProbability = Math.round(100.0 * predictions[0].probability);
+
   let better = false;
   let worse = false;
   if (pmap.has(bestClassName)) {
@@ -125,8 +126,8 @@ function showPredictions(predictions) {
     document.getElementById("p" + i).innerHTML = probability + "%";
     document.getElementById("x" + i).value = probability;
   }
-  if (worse) {
-    return;
+  if (worse || bestProbability < 10) {
+    return;  // Need more confidence or improvement.
   }
   // OK: better or new.
 
@@ -141,7 +142,7 @@ function showPredictions(predictions) {
   comma = bestClassName.indexOf(',');
   if (comma > 0) {
     cn = bestClassName.substring(0, comma);
-  } else{
+  } else {
     cn = bestClassName;
   }
 
