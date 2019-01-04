@@ -7,7 +7,7 @@ const CANVAS_SIZE = 224;  // Matches the input size of MobileNet.
 const NUM_CLASSES = 2;
 let truncatedMobileNet = null;
 const normalizationOffset = tf.scalar(127.5);
-
+const BATCH_SIZE = 4;
 // Name prefixes of layers that will be unfrozen during fine-tuning.
 // const topLayerGroupNames = ['conv_pw_11'];
 
@@ -109,7 +109,7 @@ async function loadit2() {
 
   const optimizer = tf.train.adam(1e-3);
   model2.compile({optimizer: optimizer, loss: 'categoricalCrossentropy'});
-  model2.summary();
+  //model2.summary();
 
   let xs = new Array();
   let ys = new Array();
@@ -119,7 +119,7 @@ async function loadit2() {
     let div = document.getElementById("preview" + (label + 1));
     let ch = div.childNodes;
     for (let i = 0; i < ch.length; i++) {
-      if (i % 100 == 0) {
+      if (i % 100 == 99) {
         console.log("i", i);
         console.log("MEM", tf.memory());
       }
@@ -132,38 +132,34 @@ async function loadit2() {
           const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
           return truncatedMobileNet.predict(batched); // activation
         });
-      console.log("A", activation);
-      console.log("A", activation.shape);
-      console.log("A", activation.data());      
-      xs.push(activation);
-
+      xs.push(activation.dataSync());
       const y = tf.tidy(
           () => tf.oneHot(tf.tensor1d([label]).toInt(), NUM_CLASSES));
-      ys.push(y);
+
+      //Int32Array[2]
+      ys.push(y.dataSync());
     }
   }
-  console.log("TICK/1");
-  console.log("MEM", tf.memory());
-  let bx = tf.concat(xs, 0);
-  console.log("TICK/2");
-  console.log("MEM", tf.memory());
-  let by = tf.concat(ys, 0);
-  console.log("MEM", tf.memory());
+  console.log("xs", xs);
+  console.log("ys", ys);  
   console.log("Calling fit()");
-  model2.fit(bx, by, {
-             batchSize: 32,
-          verbose: 0,
-          epochs: 2,
-          callbacks: {
-     onEpochEnd: async (batch, logs) => {
-          console.log("EPOCH LOSS: ", logs.loss.toFixed(5));
-          console.log("MEM", tf.memory());
-        },
-     onTrainEnd: async (batch, logs) => {
-          console.log("train end");
-        }
-      }
-    });
+
+  const stop = xs.length % BATCH_SIZE == 0 ? xs.length : xs.length - BATCH_SIZE;
+  for (var start = 0; start < stop; start += BATCH_SIZE) {
+    console.log("start", start, tf.memory());
+    const bx = xs.slice(start, start + BATCH_SIZE);
+    const by = ys.slice(start, start + BATCH_SIZE);
+    console.log("batch", bx, by);
+  
+    let bxt = tf.concat(bx).as4D(BATCH_SIZE, 7, 7, 256);
+    let byt = tf.concat(by).asType('float32').as2D(BATCH_SIZE, NUM_CLASSES);
+  
+    console.log("batcht", bxt, byt);  
+    model2.trainOnBatch(bxt, byt).then(loss =>
+      {
+        console.log("loss", loss);
+      });
+  }
 }
 
 function imageToTensor(image) {
@@ -186,7 +182,7 @@ function imageToTensor(image) {
 
 async function init() {
   truncatedMobileNet = await loadTruncatedMobileNet();
-  truncatedMobileNet.summary();
+  //truncatedMobileNet.summary();
 }
 
 // Initialize the application.
