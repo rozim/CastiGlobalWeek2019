@@ -1,10 +1,18 @@
 
-document.getElementById('select1').onchange = function(evt) {
-  doit(this.files, document.querySelector('#preview1'));
+let mymodel = null;
+
+console.log("Loading");
+mobilenet.load().then(model => {
+    mymodel = model;
+    console.log("Loaded");
+  });
+
+document.getElementById("select1").onchange = function(evt) {
+  doit(this.files, document.querySelector("#preview1"));
 }
 
-document.getElementById('select2').onchange = function(evt) {
-  doit(this.files, document.querySelector('#preview2'));
+document.getElementById("select2").onchange = function(evt) {
+  doit(this.files, document.querySelector("#preview2"));
 }
 
 function doit(files, preview) {
@@ -32,3 +40,16 @@ function doit(files, preview) {
 }
 
 
+function b2() {
+  console.log("b2");
+  let div = document.getElementById("preview2");
+  let ch = div.childNodes;
+  for (let i = 0; i < ch.length; i++) {
+    let div2 = ch[i];
+    let img2 = div2.childNodes[0];
+    mymodel.classify(img2).then(predictions => {
+        console.log("pred: ", predictions);
+      });
+    
+  }
+}
