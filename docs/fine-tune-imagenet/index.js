@@ -7,22 +7,9 @@ const CANVAS_SIZE = 224;  // Matches the input size of MobileNet.
 const NUM_CLASSES = 2;
 let truncatedMobileNet = null;
 const normalizationOffset = tf.scalar(127.5);
-const BATCH_SIZE = 16;
-const EPOCHS = 10;
-// Name prefixes of layers that will be unfrozen during fine-tuning.
-// const topLayerGroupNames = ['conv_pw_11'];
-
-// Name of the layer that will become the top layer of the truncated base.
-// const topLayerName =
-//`${topLayerGroupNames[topLayerGroupNames.length - 1]}_relu`;
-
-/*
-console.log("Loading");
-mobilenet.load().then(model => {
-    mymodel = model;
-    console.log("Loaded");
-  });
-*/
+const BATCH_SIZE = 32;
+const EPOCHS = 50;
+let global_model2;
 
 function shuffleArrays(a1, a2) {
   for (let i = a1.length - 1; i > 0; i--) {
@@ -33,16 +20,28 @@ function shuffleArrays(a1, a2) {
 }
 
 document.getElementById("select1").onchange = function(evt) {
-  addUploadedImages(this.files, document.querySelector("#preview1", 0));
+  addUploadedImages(this.files, document.querySelector("#preview1"), 0);
 };
 
 document.getElementById("select2").onchange = function(evt) {
-  addUploadedImages(this.files, document.querySelector("#preview2", 1));
+  addUploadedImages(this.files, document.querySelector("#preview2"), 1);
 };
 
 function addUploadedImages(files, preview, classNumber) {
+  console.log(files, preview, classNumber);
+  /*
   if (files) {
     [].forEach.call(files, readAndPreview);
+  }
+  */
+  const n = "p_" + (classNumber+1);
+  const p = document.getElementById(n);
+  console.log("xx", n, p);
+
+  p.max = files.length;
+  for (let i = 0; i < files.length; i++) {
+    p.value = i;    
+    readAndPreview(files[i]);
   }
 
   function readAndPreview(file) {
@@ -58,7 +57,8 @@ function addUploadedImages(files, preview, classNumber) {
         image.src = URL.createObjectURL(blob);
         image.title = file.name;
         image.className = "train-image";
-
+        image.width = CANVAS_SIZE;
+        image.height = CANVAS_SIZE;        
         let div = document.createElement("div");
         div.className = "card";
         div.appendChild(image);
@@ -100,7 +100,7 @@ async function loadit2() {
          }),
        // Layer 1.
        tf.layers.dense({
-        units: 10, // TBD:
+        units: 100, // TBD:
         activation: 'relu',
         kernelInitializer: 'varianceScaling',
         useBias: true
@@ -115,6 +115,10 @@ async function loadit2() {
          })
            ]
     });
+  const surface = { tab: 'Model Summary', name: 'MyModel' };
+  tfvis.show.modelSummary(surface, model2);
+  
+  global_model2 = model2;
 
   const optimizer = tf.train.adam(1e-3);
   model2.compile({optimizer: optimizer, loss: 'categoricalCrossentropy'});
@@ -123,12 +127,23 @@ async function loadit2() {
   let xs = new Array();
   let ys = new Array();
   console.log("MEM Loop begin", tf.memory());
-  let mod = 1;
-  for (var label = 0; label < 2; label++) {
+  let mod = 16;
+
+  let num_images = 0;
+  for (var label = 0; label < NUM_CLASSES; label++) {
+    num_images += document.getElementById("preview" + (label + 1)).childNodes.length;
+  }
+  const p = document.getElementById("p_init");
+  p.max = num_images;
+
+  let cur_image = 0;
+  for (var label = 0; label < NUM_CLASSES; label++) {
     console.log("label ", label);
     let div = document.getElementById("preview" + (label + 1));
     let ch = div.childNodes;
     for (let i = 0; i < ch.length; i++) {
+      p.value = cur_image;
+      cur_image += 1;
       if (i % mod == 0) {
         mod *= 2;
         console.log("i", i);
@@ -163,10 +178,12 @@ async function loadit2() {
   p_epoch.max = EPOCHS;
   const p_batch = document.getElementById("p_batch");
   p_batch.max = xs.length / BATCH_SIZE;
+  const losses = new Array();
   for (var epoch = 0; epoch < EPOCHS; epoch++) {
-    p_epoch.value = epoch;
+    p_epoch.value = epoch + 1;
     shuffleArrays(xs, ys);
-    console.log("EPOCH START", epoch, tf.memory());
+    //console.log("EPOCH START", epoch, tf.memory());
+    let sum_loss = 0.0;
     for (var start = 0; start < stop; start += BATCH_SIZE) {
       p_batch.value = start / BATCH_SIZE;
       const bx = xs.slice(start, start + BATCH_SIZE);
@@ -177,11 +194,27 @@ async function loadit2() {
 
       await model2.trainOnBatch(bxt, byt).then(loss =>
         {
-          console.log("loss", loss);
+          if (start == 0) {
+            console.log("loss", loss);
+          }
+          sum_loss += loss;
           tf.dispose([bxt, byt]);
         });
     }
-    console.log("EPOCH FINISHED", epoch, tf.memory());
+
+    losses.push({x: epoch, y: sum_loss});
+    
+    const series = ['Loss'];
+    const data = { values: [losses], series }
+    console.log("EPOCH FINISHED", epoch, "sum_loss", sum_loss, tf.memory(), losses, data);
+    const surface = tfvis.visor().surface({ tab: 'Training', name: 'Loss' });
+    tfvis.render.linechart(data, surface);
+    
+
+
+    // Render to page
+    //const container = document.getElementById('linechart-cont');
+    //tfvis.render.linechart(data, container);
   }
 }
 
@@ -205,9 +238,12 @@ function imageToTensor(image) {
 
 async function init() {
   truncatedMobileNet = await loadTruncatedMobileNet();
-  //truncatedMobileNet.summary();
+  tfvis.visor().close();
+  const surface = { tab: 'Model Summary', name: 'Truncated MobileNet' };
+  tfvis.show.modelSummary(surface, truncatedMobileNet);  
 }
 
 // Initialize the application.
 init();
+
 

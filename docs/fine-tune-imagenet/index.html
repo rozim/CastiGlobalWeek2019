@@ -7,7 +7,11 @@
     <title>Fine Tune Imagenet</title>
     <link rel="stylesheet" href="style.css">
 
+    <!--
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.14.1"> </script>
+-->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis"></script>
 <!--
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@0.1.1"> </script>
 -->
@@ -19,13 +23,16 @@
 
     <h1>Label 1</h1>
     <input type="file" id="select1" multiple>
+    <progress id="p_1"></progress>
     <div class="scrolling-wrapper-flexbox" id="preview1"></div>
 
     <h1>Label 2</h1>
     <input type="file" id="select2" multiple>
+    <progress id="p_2"></progress>
     <div class="scrolling-wrapper-flexbox" id="preview2"></div>
 
     <button name="" onclick="loadit2()">Train</button>
+    <progress id="p_init"></progress>
     <progress id="p_epoch"></progress>
     <progress id="p_batch"></progress>
 
