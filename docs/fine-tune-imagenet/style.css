@@ -1,0 +1,15 @@
+.scrolling-wrapper-flexbox {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+
+  .card {
+    flex: 0 0 auto;
+
+  }
+}
+
+.train-image {
+  margin: 0px;
+  padding: 2px;
+}
