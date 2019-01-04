@@ -43,9 +43,9 @@ function addUploadedImages(files, preview, classNumber) {
        height: CANVAS_SIZE
      }, function(blob, didItResize) {
         let image = new Image();
-        image.onload = function() {
+        //image.onload = function() {
           //const resized = imageToTensor(image)
-        };        
+        //};        
         image.src = URL.createObjectURL(blob);
         image.title = file.name;
         image.className = "train-image";
@@ -113,8 +113,35 @@ async function loadit2() {
   console.log("XXX");
   truncatedMobileNet.summary();
 
-  model2.fit(controllerDataset.xs, controllerDataset.ys, {
-   batchSize: 16,
+  let xs = new Array();
+  let ys = new Array();
+  for (var label = 0; label < 2; label++) {
+    let div = document.getElementById("preview" + (label + 1));
+    let ch = div.childNodes;
+    for (let i = 0; i < ch.length; i++) {
+      const div2 = ch[i];
+      const img2 = div2.childNodes[0];
+      const resized = imageToTensor(img2);
+      const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
+      const activation = truncatedMobileNet.predict(batched);
+      console.log("a", activation.shape);
+      xs.push(activation);
+      const y = tf.tidy(
+          () => tf.oneHot(tf.tensor1d([label]).toInt(), NUM_CLASSES));
+      ys.push(y);
+    }
+  }
+  console.log("xs", xs, "ys", ys);
+  console.log("xs", xs.shape, "ys", ys.shape);  
+
+  //let bx = tf.tensor4d(xs, [xs.length, CANVAS_SIZE, CANVAS_SIZE, 3]);
+  //let by = tf.tensor2d(ys, [ys.length, NUM_CLASSES]);
+  let bx = tf.concat(xs, 0);
+  let by = tf.concat(ys, 0);
+  console.log("bx", bx, bx.shape);
+  console.log("by", by, by.shape);  
+  model2.fit(bx, by, {
+             batchSize: 16,
           verbose: 1,
           epochs: 2,
           callbacks: {
