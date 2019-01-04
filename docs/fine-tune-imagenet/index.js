@@ -37,7 +37,7 @@ function addUploadedImages(files, preview, classNumber) {
   }
 
   function readAndPreview(file) {
-    // console.log("LOAD ", file);
+    //console.log("LOAD ", file);
     ImageTools.resize(file, {
        width: CANVAS_SIZE,
        height: CANVAS_SIZE
@@ -45,7 +45,7 @@ function addUploadedImages(files, preview, classNumber) {
         let image = new Image();
         //image.onload = function() {
           //const resized = imageToTensor(image)
-        //};        
+        //};
         image.src = URL.createObjectURL(blob);
         image.title = file.name;
         image.className = "train-image";
@@ -91,7 +91,7 @@ async function loadit2() {
          }),
        // Layer 1.
        tf.layers.dense({
-        units: 10, // TBD: 
+        units: 10, // TBD:
         activation: 'relu',
         kernelInitializer: 'varianceScaling',
         useBias: true
@@ -110,43 +110,57 @@ async function loadit2() {
   const optimizer = tf.train.adam(1e-3);
   model2.compile({optimizer: optimizer, loss: 'categoricalCrossentropy'});
   model2.summary();
-  console.log("XXX");
-  truncatedMobileNet.summary();
 
   let xs = new Array();
   let ys = new Array();
+  console.log("MEM", tf.memory());
   for (var label = 0; label < 2; label++) {
+    console.log("label ", label);
     let div = document.getElementById("preview" + (label + 1));
     let ch = div.childNodes;
     for (let i = 0; i < ch.length; i++) {
+      if (i % 100 == 0) {
+        console.log("i", i);
+        console.log("MEM", tf.memory());
+      }
       const div2 = ch[i];
       const img2 = div2.childNodes[0];
-      const resized = imageToTensor(img2);
-      const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
-      const activation = truncatedMobileNet.predict(batched);
-      console.log("a", activation.shape);
+      // activation: [1, 7, 7, 256], float32
+      // data() -> Float32Array(12544)
+      const activation = tf.tidy( () => {
+          const resized = imageToTensor(img2);
+          const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
+          return truncatedMobileNet.predict(batched); // activation
+        });
+      console.log("A", activation);
+      console.log("A", activation.shape);
+      console.log("A", activation.data());      
       xs.push(activation);
+
       const y = tf.tidy(
           () => tf.oneHot(tf.tensor1d([label]).toInt(), NUM_CLASSES));
       ys.push(y);
     }
   }
-  console.log("xs", xs, "ys", ys);
-  console.log("xs", xs.shape, "ys", ys.shape);  
-
-  //let bx = tf.tensor4d(xs, [xs.length, CANVAS_SIZE, CANVAS_SIZE, 3]);
-  //let by = tf.tensor2d(ys, [ys.length, NUM_CLASSES]);
+  console.log("TICK/1");
+  console.log("MEM", tf.memory());
   let bx = tf.concat(xs, 0);
+  console.log("TICK/2");
+  console.log("MEM", tf.memory());
   let by = tf.concat(ys, 0);
-  console.log("bx", bx, bx.shape);
-  console.log("by", by, by.shape);  
+  console.log("MEM", tf.memory());
+  console.log("Calling fit()");
   model2.fit(bx, by, {
-             batchSize: 16,
-          verbose: 1,
+             batchSize: 32,
+          verbose: 0,
           epochs: 2,
           callbacks: {
-     onBatchEnd: async (batch, logs) => {
-          console.log("LOSS: ", logs.loss.toFixed(5));
+     onEpochEnd: async (batch, logs) => {
+          console.log("EPOCH LOSS: ", logs.loss.toFixed(5));
+          console.log("MEM", tf.memory());
+        },
+     onTrainEnd: async (batch, logs) => {
+          console.log("train end");
         }
       }
     });
