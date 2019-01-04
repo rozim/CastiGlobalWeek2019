@@ -1,12 +1,10 @@
 // import * as tf from '@tensorflow/tfjs';
-// import {ControllerDataset} from './controller_dataset';
 
 // https://github.com/tensorflow/tfjs-examples/blob/master/simple-object-detection/train.js
 
 let mymodel = null;
 const CANVAS_SIZE = 224;  // Matches the input size of MobileNet.
 const NUM_CLASSES = 2;
-const controllerDataset = new ControllerDataset(NUM_CLASSES);
 let truncatedMobileNet = null;
 const normalizationOffset = tf.scalar(127.5);
 
@@ -46,25 +44,7 @@ function addUploadedImages(files, preview, classNumber) {
      }, function(blob, didItResize) {
         let image = new Image();
         image.onload = function() {
-
-          // Line 100+
-          // https://github.com/tensorflow/tfjs-models/blob/master/mobilenet/src/index.ts
-          const t = tf.fromPixels(image);
-          // Normalize the image from [0, 255] to [-1, 1].
-          const normalized = t.toFloat()
-            .sub(normalizationOffset)
-            .div(normalizationOffset); // as tf.Tensor3D;
-
-          let resized = normalized;
-          if (t.shape[0] !== CANVAS_SIZE || t.shape[1] !== CANVAS_SIZE) {
-            const alignCorners = true;
-            resized = tf.image.resizeBilinear(
-                normalized, [CANVAS_SIZE, CANVAS_SIZE], alignCorners);
-          }
-
-          //// Reshape to a single-element batch so we can pass it to predict.
-          //const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
-          controllerDataset.addExample(resized, classNumber);
+          //const resized = imageToTensor(image)
         };        
         image.src = URL.createObjectURL(blob);
         image.title = file.name;
@@ -74,13 +54,6 @@ function addUploadedImages(files, preview, classNumber) {
         div.className = "card";
         div.appendChild(image);
         preview.appendChild(div);
-
-
-        return;
-          
-          
-
-
       });
   }
 }
@@ -108,8 +81,6 @@ async function loadTruncatedMobileNet() {
 }
 
 async function loadit2() {
-
-
   let model2 = tf.sequential({
    layers: [
        // Flattens the input to a vector so we can use it in a dense layer. While
@@ -143,7 +114,8 @@ async function loadit2() {
   truncatedMobileNet.summary();
 
   model2.fit(controllerDataset.xs, controllerDataset.ys, {
-      batchSize,
+   batchSize: 16,
+          verbose: 1,
           epochs: 2,
           callbacks: {
      onBatchEnd: async (batch, logs) => {
@@ -151,6 +123,24 @@ async function loadit2() {
         }
       }
     });
+}
+
+function imageToTensor(image) {
+  // Line 100+
+  // https://github.com/tensorflow/tfjs-models/blob/master/mobilenet/src/index.ts
+  const t = tf.fromPixels(image);
+  // Normalize the image from [0, 255] to [-1, 1].
+  const normalized = t.toFloat()
+      .sub(normalizationOffset)
+      .div(normalizationOffset); // as tf.Tensor3D;
+
+  let resized = normalized;
+  if (t.shape[0] !== CANVAS_SIZE || t.shape[1] !== CANVAS_SIZE) {
+    const alignCorners = true;
+    resized = tf.image.resizeBilinear(
+        normalized, [CANVAS_SIZE, CANVAS_SIZE], alignCorners);
+  }
+  return resized;
 }
 
 async function init() {
