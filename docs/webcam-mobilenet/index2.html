@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+
+<meta content="Display Webcam Stream" name="title">
+<link rel="icon" href="https://www.castilleja.org/uploaded/favicon.ico">
+
+<title>Display Webcam Stream</title>
+
+<style>
+
+#status {
+font-weight: bold;
+font-color: blue;
+align: bottom;
+margin: 25px;
+border: 3px #8FBC8F solid;
+padding: 10px;
+width: 50px;
+}
+
+.x-div {
+    float: left;
+    overflow: hidden;
+    border: 1px black solid;
+}
+
+.x-img {
+   width: 128;
+   height: 128;
+   margin: 1px;
+   padding: 1px;
+}
+
+.x-img:hover { 
+  cursor: pointer; 
+}
+
+.x-img-wrap {
+    position: relative;
+}
+
+.x-text {
+    font-size: smaller;
+}
+
+.p {
+  font-family: fixed;
+  text-align: right;
+}
+
+video {
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+}
+
+#container {
+    margin: 0px;
+    border: 2px #333 solid;
+    float: left;
+    overflow: hidden;
+}
+
+#preds {
+    float: left;
+    overflow: hidden;
+    margin: 25px;
+}
+
+#canvas {
+    margin: 0px;
+    width: 224px;
+    height: 224px;
+    border: 2px #333 solid;
+    float: left;
+    overflow: hidden;
+}
+
+#videoElement {
+    width: 224px;
+    height: 224px;
+    background-color: #666;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.11.7"> </script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@0.1.1"> </script>
+
+</head>
+  
+<body>
+
+
+<div id="container">
+    <video autoplay="true" id="videoElement"></video>
+</div>
+<canvas id="canvas"></canvas>
+
+<div id=preds>
+  <table>
+    <tr>
+      <td><span id=c0>c0</span></td>
+      <td><span class=p id=p0>p0</span></td>
+      <td><progress id="x0" max=100></progress></td>
+    </tr>
+    <tr>
+      <td><span id=c1>c1</span></td>
+      <td><span class=p id=p1>p1</span></td>
+      <td><progress id="x1" max=100></progress></td>
+    </tr>
+    <tr>
+      <td><span id=c2>c2</span></td>
+      <td><span class=p id=p2>p2</span></td>
+      <td><progress id="x2" max=100></progress></td>
+    </tr>
+  </table>
+  <div id='status'>...</div>
+</div>
+
+<div style='clear:both'></div>
+<button id='speak-button', onclick="speak();">Press to manually speak</button>
+
+<div style='clear:both'></div>
+<div id="images">
+</div>
+
+<script src="index.js"></script>
+
+</body>
+</html>
