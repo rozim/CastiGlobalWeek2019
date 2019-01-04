@@ -8,6 +8,7 @@ const NUM_CLASSES = 2;
 let truncatedMobileNet = null;
 const normalizationOffset = tf.scalar(127.5);
 const BATCH_SIZE = 16;
+const EPOCHS = 10;
 // Name prefixes of layers that will be unfrozen during fine-tuning.
 // const topLayerGroupNames = ['conv_pw_11'];
 
@@ -22,6 +23,14 @@ mobilenet.load().then(model => {
     console.log("Loaded");
   });
 */
+
+function shuffleArrays(a1, a2) {
+  for (let i = a1.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a1[i], a1[j]] = [a1[j], a1[i]];
+    [a2[i], a2[j]] = [a2[j], a2[i]];    
+  }
+}
 
 document.getElementById("select1").onchange = function(evt) {
   addUploadedImages(this.files, document.querySelector("#preview1", 0));
@@ -134,78 +143,64 @@ async function loadit2() {
           const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
           return truncatedMobileNet.predict(batched); // activation
         });
-      if (i == 3) {
-        console.log("ZOOM/1", tf.memory());
-      }
+
       xs.push(activation.dataSync());
-      if (i == 3) {
-        console.log("ZOOM/2", tf.memory());
-      }      
       const y = tf.tidy(
           () => tf.oneHot(tf.tensor1d([label]).toInt(), NUM_CLASSES));
 
       //Int32Array[2]
-      if (i == 3) {
-        console.log("ZOOM/3", tf.memory());
-      }      
       ys.push(y.dataSync());
-      if (i == 3) {
-        console.log("ZOOM/4", tf.memory());
-      }
       tf.dispose([activation, y]);
-      if (i == 3) {
-        console.log("ZOOM/5", tf.memory());
-      }      
     }
   }
   console.log("MEM Loop end", tf.memory());  
-  //console.log("xs", xs);
-  //console.log("ys", ys);  
+
   console.log("Calling fit()");
 
   const stop = xs.length % BATCH_SIZE == 0 ? xs.length : xs.length - BATCH_SIZE;
-  for (var start = 0; start < stop; start += BATCH_SIZE) {
-    if (start == 0) { console.log("SOOM/1", tf.memory()); }
 
-    const bx = xs.slice(start, start + BATCH_SIZE);
-    const by = ys.slice(start, start + BATCH_SIZE);
-    if (start == 0) { console.log("SOOM/2", tf.memory()); }
-    //console.log("batch", bx, by);
+  const p_epoch = document.getElementById("p_epoch");
+  p_epoch.max = EPOCHS;
+  const p_batch = document.getElementById("p_batch");
+  p_batch.max = xs.length / BATCH_SIZE;
+  for (var epoch = 0; epoch < EPOCHS; epoch++) {
+    p_epoch.value = epoch;
+    shuffleArrays(xs, ys);
+    console.log("EPOCH START", epoch, tf.memory());
+    for (var start = 0; start < stop; start += BATCH_SIZE) {
+      p_batch.value = start / BATCH_SIZE;
+      const bx = xs.slice(start, start + BATCH_SIZE);
+      const by = ys.slice(start, start + BATCH_SIZE);
   
-    const bxt = tf.tidy( () => tf.concat(bx).as4D(BATCH_SIZE, 7, 7, 256));
-    if (start == 0) { console.log("SOOM/3", tf.memory()); }
-    const byt = tf.tidy( () => tf.concat(by).asType('float32').as2D(BATCH_SIZE, NUM_CLASSES));
-    if (start == 0) { console.log("SOOM/4", tf.memory()); }
+      const bxt = tf.tidy( () => tf.concat(bx).as4D(BATCH_SIZE, 7, 7, 256));
+      const byt = tf.tidy( () => tf.concat(by).asType('float32').as2D(BATCH_SIZE, NUM_CLASSES));
 
-    await model2.trainOnBatch(bxt, byt).then(loss =>
-      {
-        console.log("loss", start, loss);
-        if (start == 0) { console.log("SOOM/5", tf.memory()); }
-        tf.dispose([bxt, byt]);
-        if (start == 0) { console.log("SOOM/6", tf.memory()); }
-      });
+      await model2.trainOnBatch(bxt, byt).then(loss =>
+        {
+          console.log("loss", loss);
+          tf.dispose([bxt, byt]);
+        });
+    }
+    console.log("EPOCH FINISHED", epoch, tf.memory());
   }
-  console.log("FINISHED", tf.memory());  
 }
 
 function imageToTensor(image) {
-  return tf.tidy( () => {
-      // Line 100+
-      // https://github.com/tensorflow/tfjs-models/blob/master/mobilenet/src/index.ts
-      const t = tf.fromPixels(image);
-      // Normalize the image from [0, 255] to [-1, 1].
-      const normalized = t.toFloat()
+  // Line 100+
+  // https://github.com/tensorflow/tfjs-models/blob/master/mobilenet/src/index.ts
+  const t = tf.fromPixels(image);
+  // Normalize the image from [0, 255] to [-1, 1].
+  const normalized = t.toFloat()
       .sub(normalizationOffset)
       .div(normalizationOffset); // as tf.Tensor3D;
 
-      let resized = normalized;
-      if (t.shape[0] !== CANVAS_SIZE || t.shape[1] !== CANVAS_SIZE) {
-        const alignCorners = true;
-        resized = tf.image.resizeBilinear(
-            normalized, [CANVAS_SIZE, CANVAS_SIZE], alignCorners);
-      }
-      return resized;
-    });
+  let resized = normalized;
+  if (t.shape[0] !== CANVAS_SIZE || t.shape[1] !== CANVAS_SIZE) {
+    const alignCorners = true;
+    resized = tf.image.resizeBilinear(
+        normalized, [CANVAS_SIZE, CANVAS_SIZE], alignCorners);
+  }
+  return resized;
 }
 
 async function init() {
