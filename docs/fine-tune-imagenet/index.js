@@ -8,7 +8,7 @@ const NUM_CLASSES = 2;
 let truncatedMobileNet = null;
 const normalizationOffset = tf.scalar(127.5);
 const BATCH_SIZE = 32;
-const EPOCHS = 50;
+const EPOCHS = 100;
 let global_model2;
 
 function shuffleArrays(a1, a2) {
@@ -63,6 +63,17 @@ function addUploadedImages(files, preview, classNumber) {
         div.className = "card";
         div.appendChild(image);
         preview.appendChild(div);
+
+        /*
+        const onload = (my_image) => (event) => {
+          const resized = imageToTensor(my_image); 
+          const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
+          my_image.activation = truncatedMobileNet.predict(batched); // activation
+
+        };
+
+        image.onload = onload(image);
+        */
       });
   }
 }
@@ -98,20 +109,24 @@ async function loadit2() {
        tf.layers.flatten({
         inputShape: truncatedMobileNet.outputs[0].shape.slice(1)
          }),
+       
        // Layer 1.
        tf.layers.dense({
         units: 100, // TBD:
         activation: 'relu',
         kernelInitializer: 'varianceScaling',
-        useBias: true
+        useBias: true,
+        name: 'my_dense',
          }),
+       
        // Layer 2. The number of units of the last layer should correspond
        // to the number of classes we want to predict.
        tf.layers.dense({
         units: NUM_CLASSES,
         kernelInitializer: 'varianceScaling',
         useBias: false,
-        activation: 'softmax'
+        activation: 'softmax',
+        name: 'my_softmax'
          })
            ]
     });
@@ -119,6 +134,11 @@ async function loadit2() {
   tfvis.show.modelSummary(surface, model2);
   
   global_model2 = model2;
+
+  let s = { tab: 'Details', name: 'my_softmax'};
+  tfvis.show.layer(s, model2.getLayer('my_softmax'));
+  s = { tab: 'Details', name: 'my_dense'};
+  tfvis.show.layer(s, model2.getLayer('my_dense'));  
 
   const optimizer = tf.train.adam(1e-3);
   model2.compile({optimizer: optimizer, loss: 'categoricalCrossentropy'});
@@ -162,6 +182,10 @@ async function loadit2() {
       xs.push(activation.dataSync());
       const y = tf.tidy(
           () => tf.oneHot(tf.tensor1d([label]).toInt(), NUM_CLASSES));
+      if (i == 0) {
+        console.log('y hot', y, y.dataSync());
+        y.print(true);
+      }
 
       //Int32Array[2]
       ys.push(y.dataSync());
@@ -179,11 +203,15 @@ async function loadit2() {
   const p_batch = document.getElementById("p_batch");
   p_batch.max = xs.length / BATCH_SIZE;
   const losses = new Array();
+  const batch_losses = new Array();
+  const times = new Array();
+  let batch_number = 0;
   for (var epoch = 0; epoch < EPOCHS; epoch++) {
     p_epoch.value = epoch + 1;
     shuffleArrays(xs, ys);
     //console.log("EPOCH START", epoch, tf.memory());
     let sum_loss = 0.0;
+    const t1 = new Date().getTime();
     for (var start = 0; start < stop; start += BATCH_SIZE) {
       p_batch.value = start / BATCH_SIZE;
       const bx = xs.slice(start, start + BATCH_SIZE);
@@ -192,29 +220,47 @@ async function loadit2() {
       const bxt = tf.tidy( () => tf.concat(bx).as4D(BATCH_SIZE, 7, 7, 256));
       const byt = tf.tidy( () => tf.concat(by).asType('float32').as2D(BATCH_SIZE, NUM_CLASSES));
 
+      if (start == 0) {
+        console.log('y', epoch, byt.dataSync());
+        byt.print(true);
+      }
       await model2.trainOnBatch(bxt, byt).then(loss =>
         {
-          if (start == 0) {
-            console.log("loss", loss);
-          }
           sum_loss += loss;
           tf.dispose([bxt, byt]);
+          batch_losses.push({x: batch_number, y: loss});
+          batch_number += 1;
+
+          const series = ['Batch Loss'];
+          const data = { values: [batch_losses], series }
+          const surface = tfvis.visor().surface({ tab: 'Training',
+                                                  name: 'Batch Loss',
+                                                  styles: { height: "200px", maxHeight: "200px" },
+            });
+          tfvis.render.linechart(data, surface);          
         });
     }
 
+    const t2 = new Date().getTime();
+    times.push({x: epoch, y: (t2 - t1) / 1000.0});
     losses.push({x: epoch, y: sum_loss});
-    
-    const series = ['Loss'];
-    const data = { values: [losses], series }
-    console.log("EPOCH FINISHED", epoch, "sum_loss", sum_loss, tf.memory(), losses, data);
-    const surface = tfvis.visor().surface({ tab: 'Training', name: 'Loss' });
-    tfvis.render.linechart(data, surface);
-    
 
+    {
+      const series = ['Loss'];
+      const data = { values: [losses], series }
+      const surface = tfvis.visor().surface({ tab: 'Training', name: 'Epoch/Loss',
+                                            styles: { height: "200", maxHeight: "200"}});
+      tfvis.render.linechart(data, surface);
+    }
+    {
+      const series = ['Times'];
+      const data = { values: [times], series }
+      const surface = tfvis.visor().surface({ tab: 'Training', name: 'Epoch/Time',
+                                            styles: { height: "200", maxHeight: "200"}});
+      tfvis.render.linechart(data, surface);
+    }    
 
-    // Render to page
-    //const container = document.getElementById('linechart-cont');
-    //tfvis.render.linechart(data, container);
+    console.log("EPOCH FINISHED", epoch, "sum_loss", sum_loss, tf.memory(), (t2-t1));    
   }
 }
 
@@ -240,7 +286,10 @@ async function init() {
   truncatedMobileNet = await loadTruncatedMobileNet();
   tfvis.visor().close();
   const surface = { tab: 'Model Summary', name: 'Truncated MobileNet' };
-  tfvis.show.modelSummary(surface, truncatedMobileNet);  
+  tfvis.show.modelSummary(surface, truncatedMobileNet);
+
+  const s = { tab: 'Details', name: 'conv_pw_13_relu'};
+  tfvis.show.layer(s, truncatedMobileNet.getLayer('conv_pw_13_relu'));
 }
 
 // Initialize the application.
