@@ -231,6 +231,14 @@ async function loadit2() {
   const accuracys = new Array();
   let batch_number = 0;
 
+
+  const el_accuracy = element("best_accuracy");
+  const el_loss = element("best_loss");
+  el_accuracy.innerHTML = "";
+  el_loss.innerHTML = "";
+  let best_accuracy = 0.0;
+  let best_loss = null;
+
   for (var epoch = 0; epoch < p_epoch.max; epoch++) {
     p_epoch.value = epoch + 1;
     shuffleArrays(xs_train, ys_train);
@@ -260,6 +268,11 @@ async function loadit2() {
     times.push({x: epoch, y: (t2 - t1) / 1000.0});
     losses.push({x: epoch, y: sum_loss});
 
+    if (best_loss === null || sum_loss < best_loss) {
+      best_loss = sum_loss;
+      el_loss.innerHTML = sum_loss.toFixed(4);
+    }
+
     // begin validation
     const vstop = xs_validation.length % BATCH_SIZE == 0 ? xs_validation.length : xs_validation.length - BATCH_SIZE;
 
@@ -286,6 +299,10 @@ async function loadit2() {
         });
     }
     const accuracy = num_right / (num_right + num_wrong);
+    if (accuracy > best_accuracy) {
+      best_accuracy = accuracy;
+      el_accuracy.innerHTML = accuracy.toFixed(2);
+    }
     accuracys.push({x: epoch, y: accuracy});
     console.log("VAL", num_right, num_wrong, accuracy, num);
     // end validation
@@ -373,6 +390,10 @@ function getNumber(id) {
 
 function getInteger(id) {
   return Math.round(Number(document.getElementById(id).value));
+}
+
+function element(id) {
+  return document.getElementById(id);
 }
 
 // Initialize the application.

@@ -34,3 +34,8 @@
          font-weight: bold;
          font-size: 110%;
 }
+
+.numeric {
+  font-family: "courier new", "courier", "monospace";
+  font-size: 90%;
+}
