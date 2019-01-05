@@ -8,10 +8,13 @@ const NUM_CLASSES = 2;
 let truncatedMobileNet = null;
 const normalizationOffset = tf.scalar(127.5);
 const BATCH_SIZE = 32;
-const EPOCHS = 100;
+const EPOCHS = 10;
 let global_model2;
 
 const LEARNING_RATE = 0.0001;
+
+const HIDE = "&#9654;";
+const SHOW = "&#9660;";
 
 function shuffleArrays(a1, a2) {
   for (let i = a1.length - 1; i > 0; i--) {
@@ -228,6 +231,14 @@ async function loadit2() {
             });
           tfvis.render.linechart(data, surface);          
         });
+      if (start == 0) {
+        tf.tidy( () => {
+            const bxt = tf.concat(bx).as4D(BATCH_SIZE, 7, 7, 256);
+            console.log("before");
+            model2.predictOnBatch(bxt).print();
+            console.log("after");
+          });
+      }
     }
 
     const t2 = new Date().getTime();
@@ -276,10 +287,10 @@ function toggle(but, id) {
 
   if (el.style.display === 'none') {
     el.style.display = 'block';
-    but.innerHTML = "hide";
+    but.innerHTML = SHOW;
   } else {
     el.style.display = 'none';
-    but.innerHTML = "show";    
+    but.innerHTML = HIDE;
   }
   console.log(but);
 }
