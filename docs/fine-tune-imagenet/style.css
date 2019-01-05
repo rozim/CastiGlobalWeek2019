@@ -14,6 +14,6 @@
   padding: 2px;
 }
 
-.smaller {
-font-size: smaller;
+.boxit {
+       border: 2px #EEE solid;
 }

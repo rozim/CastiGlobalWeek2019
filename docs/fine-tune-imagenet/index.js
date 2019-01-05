@@ -145,8 +145,6 @@ async function loadit2() {
   for (var label = 0; label < NUM_CLASSES; label++) {
     num_images += document.getElementById("preview" + (label + 1)).childNodes.length;
   }
-  const p = document.getElementById("p_init");
-  p.max = num_images;
 
   let cur_image = 0;
   for (var label = 0; label < NUM_CLASSES; label++) {
@@ -154,7 +152,6 @@ async function loadit2() {
     let div = document.getElementById("preview" + (label + 1));
     let ch = div.childNodes;
     for (let i = 0; i < ch.length; i++) {
-      p.value = cur_image;
       cur_image += 1;
       if (i % mod == 0) {
         mod *= 2;
