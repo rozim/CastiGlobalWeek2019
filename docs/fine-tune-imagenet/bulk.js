@@ -72,8 +72,10 @@ function addUploadedImages(files, preview, classNumber) {
                     const t = document.createElement("span");
                     t.style.width = "200px";
                     t.style.maxWidth = "200px";
-                    t.style.display = "inline-block";
+                    t.style.display = "block";
+                    //t.className = "row-label";
                     t.innerHTML = "<b>" + row_id.substring(4) + " (" + images.get(row_id).length + ") " + "</b>";
+                    
                     row = document.createElement("div");
                     row.appendChild(t);
                     row.id = row_id;
@@ -99,14 +101,14 @@ function addUploadedImages(files, preview, classNumber) {
                   for (var j = 0; j < imgs.length; j++) {
                     const pred = Math.round(tuples[j][0] * 100.0) + "%";
                     const img = tuples[j][1];
-                    const container = document.createElement("div");
-                    container.className = "item";
-                    const caption = document.createElement("span");
-                    caption.className = "caption";
-                    caption.innerHTML = pred;
-                    container.appendChild(img);
-                    container.appendChild(caption);                   
-                    row.appendChild(container);
+
+                    const figure = document.createElement("figure");
+                    figure.style.minWidth = "224px";
+                    const figcaption = document.createElement("figcaption");
+                    figcaption.innerHTML = pred;                    
+                    figure.appendChild(img);
+                    figure.appendChild(figcaption);
+                    row.appendChild(figure);
                   }
                 }
               }

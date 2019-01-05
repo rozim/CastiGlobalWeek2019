@@ -3,12 +3,15 @@ div.item {
     display: inline-block;
     text-align: center;
     width: 224px;
+    margin-left: 10px;
 }
+
 img {
     background-color: grey;
     width:  224px;
     height: 224px;
 }
+
 .caption {
     text-align: center;
     display: block;
@@ -18,4 +21,18 @@ img {
     font-family: monospace;
     font-size: 90%;
     width: 224px;
+}
+
+.row-label {
+    font-size: larger;
+}
+
+figure {
+  text-align: center;
+  border: thin silver solid;
+
+}
+
+figcaption {
+  font-family: monospace;     
 }
