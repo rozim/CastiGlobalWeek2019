@@ -17,3 +17,14 @@
 .boxit {
        border: 2px #EEE solid;
 }
+
+.toggle {
+ font-size: 10%;
+ color: #666;
+ margin-left: 25px;
+}
+
+.pbar {
+      border: 1px #333 solid;
+      padding: 10px;
+}

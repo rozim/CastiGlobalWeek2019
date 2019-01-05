@@ -11,6 +11,8 @@ const BATCH_SIZE = 32;
 const EPOCHS = 100;
 let global_model2;
 
+const LEARNING_RATE = 0.0001;
+
 function shuffleArrays(a1, a2) {
   for (let i = a1.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -132,9 +134,8 @@ async function loadit2() {
   s = { tab: 'Details', name: 'my_dense'};
   tfvis.show.layer(s, model2.getLayer('my_dense'));  
 
-  const optimizer = tf.train.adam(1e-3);
+  const optimizer = tf.train.adam(LEARNING_RATE);
   model2.compile({optimizer: optimizer, loss: 'categoricalCrossentropy'});
-  //model2.summary();
 
   let xs = new Array();
   let ys = new Array();
@@ -198,7 +199,6 @@ async function loadit2() {
   for (var epoch = 0; epoch < EPOCHS; epoch++) {
     p_epoch.value = epoch + 1;
     shuffleArrays(xs, ys);
-    //console.log("EPOCH START", epoch, tf.memory());
     let sum_loss = 0.0;
     const t1 = new Date().getTime();
     for (var start = 0; start < stop; start += BATCH_SIZE) {
@@ -224,7 +224,7 @@ async function loadit2() {
           const data = { values: [batch_losses], series }
           const surface = tfvis.visor().surface({ tab: 'Training',
                                                   name: 'Batch Loss',
-                                                  styles: { height: "200px", maxHeight: "200px" },
+                                                  styles: { height: 200, maxHeight: 200 },
             });
           tfvis.render.linechart(data, surface);          
         });
@@ -238,14 +238,14 @@ async function loadit2() {
       const series = ['Loss'];
       const data = { values: [losses], series }
       const surface = tfvis.visor().surface({ tab: 'Training', name: 'Epoch/Loss',
-                                            styles: { height: "200", maxHeight: "200"}});
+                                            styles: { height: 200, maxHeight: 200}});
       tfvis.render.linechart(data, surface);
     }
     {
       const series = ['Times'];
       const data = { values: [times], series }
       const surface = tfvis.visor().surface({ tab: 'Training', name: 'Epoch/Time',
-                                            styles: { height: "200", maxHeight: "200"}});
+                                            styles: { height: 200, maxHeight: 200}});
       tfvis.render.linechart(data, surface);
     }    
 
