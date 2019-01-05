@@ -144,7 +144,7 @@ async function loadit2() {
   let xs_all = new Array();
   let ys_all = new Array();
   console.log("MEM Loop begin", tf.memory());
-  let mod = 16;
+  let mod = 100;
 
   let num_images = 0;
   for (var label = 0; label < NUM_CLASSES; label++) {
@@ -160,7 +160,6 @@ async function loadit2() {
       cur_image += 1;
       if (i % mod == 0) {
         mod *= 2;
-        console.log("i", i);
         console.log("Loop MEM", tf.memory());
       }
       const div2 = ch[i];
@@ -205,10 +204,10 @@ async function loadit2() {
   const p_batch = document.getElementById("p_batch");
   p_batch.max = xs_train.length / BATCH_SIZE;
   const losses = new Array();
-  const batch_losses = new Array();
   const times = new Array();
   const accuracys = new Array();
   let batch_number = 0;
+
   for (var epoch = 0; epoch < EPOCHS; epoch++) {
     p_epoch.value = epoch + 1;
     shuffleArrays(xs_train, ys_train);
@@ -222,21 +221,11 @@ async function loadit2() {
       const bxt = tf.tidy( () => tf.concat(bx).as4D(BATCH_SIZE, 7, 7, 256));
       const byt = tf.tidy( () => tf.concat(by).asType('float32').as2D(BATCH_SIZE, NUM_CLASSES));
 
-
       await model2.trainOnBatch(bxt, byt).then(loss =>
         {
           sum_loss += loss;
           tf.dispose([bxt, byt]);
-          batch_losses.push({x: batch_number, y: loss});
           batch_number += 1;
-
-          const series = ['Batch Loss'];
-          const data = { values: [batch_losses], series }
-          const surface = tfvis.visor().surface({ tab: 'Training',
-                                                  name: 'Batch Loss',
-                                                  styles: { height: 200, maxHeight: 200 },
-            });
-          tfvis.render.linechart(data, surface);          
         });
     } // end of one epoch of training loop
 
@@ -245,7 +234,6 @@ async function loadit2() {
     losses.push({x: epoch, y: sum_loss});
 
     // begin validation
-
     const vstop = xs_validation.length % BATCH_SIZE == 0 ? xs_validation.length : xs_validation.length - BATCH_SIZE;
     console.log("xxx_val", xs_validation.length, vstop);
     let num_right = 0;
@@ -297,7 +285,7 @@ async function loadit2() {
       tfvis.render.linechart(data, surface);
     }    
 
-    console.log("EPOCH FINISHED", epoch, "sum_loss", sum_loss, tf.memory(), (t2-t1));    
+    console.log("EPOCH FINISHED", epoch, "sum_loss", sum_loss, tf.memory(), Math.ceil((t2-t1)/1000.0));
   }
   console.log("TRAINING FINISHED");
 }
