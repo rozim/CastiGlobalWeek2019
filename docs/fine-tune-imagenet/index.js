@@ -9,13 +9,14 @@ let truncatedMobileNet = null;
 const normalizationOffset = tf.scalar(127.5);
 const BATCH_SIZE = 8;
 const EPOCHS = 100;
-const PICK = 0.85;
+const PICK = 0.80;
+const DENSE_SIZE = 5;
 let global_model2;
-
-const LEARNING_RATE = 0.0001;
 
 const HIDE = "&#9654;";
 const SHOW = "&#9660;";
+
+let allow_training = true;
 
 function shuffleArrays(a1, a2) {
   for (let i = a1.length - 1; i > 0; i--) {
@@ -34,8 +35,9 @@ document.getElementById("select2").onchange = function(evt) {
 };
 
 function addUploadedImages(files, preview, classNumber) {
-  console.log(files, preview, classNumber);
+
   /*
+    console.log(files, preview, classNumber);    
   if (files) {
     [].forEach.call(files, readAndPreview);
   }
@@ -98,7 +100,13 @@ async function loadTruncatedMobileNet() {
   return tf.model({inputs: mobilenet.inputs, outputs: layer.output});
 }
 
+
+async function stopit() {
+  allow_training = false;
+}
+
 async function loadit2() {
+  allow_training = true;
   let model2 = tf.sequential({
    layers: [
        // Flattens the input to a vector so we can use it in a dense layer. While
@@ -110,7 +118,7 @@ async function loadit2() {
        
        // Layer 1.
        tf.layers.dense({
-        units: 100, // TBD:
+        units: DENSE_SIZE, // TBD:
         activation: 'relu',
         kernelInitializer: 'varianceScaling',
         useBias: true,
@@ -138,7 +146,9 @@ async function loadit2() {
   s = { tab: 'Details', name: 'my_dense'};
   tfvis.show.layer(s, model2.getLayer('my_dense'));  
 
-  const optimizer = tf.train.adam(LEARNING_RATE);
+  const lr = getNumber("learning_rate");
+  console.log("LR", lr);
+  const optimizer = tf.train.adam(lr);
   model2.compile({optimizer: optimizer, loss: 'categoricalCrossentropy'});
 
   let xs_all = new Array();
@@ -214,6 +224,10 @@ async function loadit2() {
     let sum_loss = 0.0;
     const t1 = new Date().getTime();
     for (var start = 0; start < stop; start += BATCH_SIZE) {
+      if (!allow_training) {
+        console.log("TRAINING STOPPED");
+        return;
+      }
       p_batch.value = start / BATCH_SIZE;
       const bx = xs_train.slice(start, start + BATCH_SIZE);
       const by = ys_train.slice(start, start + BATCH_SIZE);
@@ -338,6 +352,10 @@ async function init() {
 
   const s = { tab: 'Details', name: 'conv_pw_13_relu'};
   tfvis.show.layer(s, truncatedMobileNet.getLayer('conv_pw_13_relu'));
+}
+
+function getNumber(id) {
+  return Number(document.getElementById(id).value);
 }
 
 // Initialize the application.
