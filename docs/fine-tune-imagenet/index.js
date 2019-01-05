@@ -6,6 +6,7 @@ let mymodel = null;
 const CANVAS_SIZE = 224;  // Matches the input size of MobileNet.
 const NUM_CLASSES = 2;
 let truncatedMobileNet = null;
+let fullMobileNet = null;
 const normalizationOffset = tf.scalar(127.5);
 const BATCH_SIZE = 8;
 const PICK = 0.80;
@@ -16,6 +17,8 @@ const HIDE = "&#9654;";
 const SHOW = "&#9660;";
 
 let allow_training = true;
+
+let freqs = [null, null];
 
 function shuffleArrays(a1, a2) {
   for (let i = a1.length - 1; i > 0; i--) {
@@ -45,6 +48,8 @@ function addUploadedImages(files, preview, classNumber) {
   const p = document.getElementById("p_label" + (classNumber + 1));
   p.max = files.length;
   p.value = 0;
+  freqs[classNumber] = new Array();
+
   for (let i = 0; i < files.length; i++) {
     readAndPreview(p, files[i], classNumber, i);
   }
@@ -68,28 +73,42 @@ function addUploadedImages(files, preview, classNumber) {
         preview.appendChild(div);
 
         const onload = (my_image) => (event) => {
-
-          if (seq % 10 == 0) {          
+            /*
             let prom = tf.time(() =>
                                tf.tidy( () => { 
                                    const resized = imageToTensor(my_image);
                                    const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
                                    my_image.activation = truncatedMobileNet.predict(batched).dataSync();
+                                   freq.push(tf.argMax(fullMobileNet.predict(batched), 1).dataSync()[0]);
                                    pro.value += 1;
                                  }
                                  )
-                               );
-            prom.then( (foo) => {
-                console.log(foo, tf.memory());
-              });
-          } else {
-            tf.tidy( () => { 
-                const resized = imageToTensor(my_image);
-                const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
-                my_image.activation = truncatedMobileNet.predict(batched).dataSync();
-                pro.value += 1;
-              });
-          }
+                               ); */
+          tf.tidy( () => { 
+              const resized = imageToTensor(my_image);
+              const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
+              my_image.activation = truncatedMobileNet.predict(batched).dataSync();
+              freqs[cn].push(tf.argMax(fullMobileNet.predict(batched), 1).dataSync()[0]);
+              pro.value += 1;
+              if (pro.value == pro.max) {
+                console.log("LOADED");
+                const best = sort_count2(sort_count(freqs[cn]));
+
+                const headers = [
+                    "Label",
+                    "Id",
+                    "Count"
+                                 ];
+                let values = Array();
+                for (var i = 0; i < best.length; i++) {
+                  var id = best[i][0];
+                  var count = best[i][1];
+                  values.push([simplify(IMAGENET[id]), id, count]);
+                }
+                const surface = tfvis.visor().surface({ tab: "Imagenet", name: "Label" + (1 + cn)});
+                tfvis.render.table({ headers, values }, surface);
+              }
+            });
         };
         image.onload = onload(image);        
       });
@@ -375,6 +394,10 @@ function hide(but, id) {
 }
 
 async function init() {
+  // Hack/redundant w/ next line.
+  fullMobileNet = await tf.loadModel(
+      'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json');
+  
   truncatedMobileNet = await loadTruncatedMobileNet();
   tfvis.visor().close();
   const surface = { tab: 'Model Summary', name: 'Truncated MobileNet' };
@@ -394,6 +417,39 @@ function getInteger(id) {
 
 function element(id) {
   return document.getElementById(id);
+}
+
+function sort_count(arr) {
+  var counts = {};
+
+  for (var i = 0; i < arr.length; i++) {
+    var num = arr[i];
+    counts[num] = counts[num] ? counts[num] + 1 : 1;
+  }
+  return counts;
+}
+
+function sort_count2(obj) {
+  var tuples = [];
+
+  for (var key in obj) tuples.push([key, obj[key]]);
+
+  tuples.sort(function(a, b) {
+      a = a[1];
+      b = b[1];
+
+      return a > b ? -1 : (a < b ? 1 : 0);
+    });
+  return tuples;
+}
+
+function simplify(s) {
+  var x = s.indexOf(',');
+  if (x > 0) {
+    return s.substring(0, x);
+  } else {
+    return s;
+  }
 }
 
 // Initialize the application.

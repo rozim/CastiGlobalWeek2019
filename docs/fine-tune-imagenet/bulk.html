@@ -1,0 +1,26 @@
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+
+    <title>Bulk Imagenet</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis"></script>
+    <link rel="stylesheet" href="style.css">
+  </head>
+
+  <body>
+    <input type="file" id="select1" multiple>
+    <div class="scrolling-wrapper-flexbox" id="preview1"></div>
+    <progress id="p_label1"></progress>
+    <div id="container">...</div>
+
+    <script src="ImageTools.js"></script>
+    <script src="imagenet_classes.js"></script>
+    <script src="bulk.js"></script>
+
+  </body>
+
+</html>
