@@ -8,7 +8,6 @@ const NUM_CLASSES = 2;
 let truncatedMobileNet = null;
 const normalizationOffset = tf.scalar(127.5);
 const BATCH_SIZE = 8;
-const EPOCHS = 100;
 const PICK = 0.80;
 const DENSE_SIZE = 5;
 let global_model2;
@@ -43,17 +42,21 @@ function addUploadedImages(files, preview, classNumber) {
   }
   */
 
+  const p = document.getElementById("p_label" + (classNumber + 1));
+  p.max = files.length;
+  p.value = 0;
   for (let i = 0; i < files.length; i++) {
-    readAndPreview(files[i]);
+    readAndPreview(p, files[i], classNumber, i);
   }
 
-  function readAndPreview(file) {
+  function readAndPreview(pro, file, cn, seq) {
     //console.log("LOAD ", file);
     ImageTools.resize(file, {
        width: CANVAS_SIZE,
        height: CANVAS_SIZE
      }, function(blob, didItResize) {
         let image = new Image();
+        image.id = ("img_" + cn + "_" + seq);
         image.src = URL.createObjectURL(blob);
         image.title = file.name;
         image.className = "train-image";
@@ -64,16 +67,31 @@ function addUploadedImages(files, preview, classNumber) {
         div.appendChild(image);
         preview.appendChild(div);
 
-        /*
         const onload = (my_image) => (event) => {
-          const resized = imageToTensor(my_image); 
-          const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
-          my_image.activation = truncatedMobileNet.predict(batched); // activation
 
+          if (seq % 10 == 0) {          
+            let prom = tf.time(() =>
+                               tf.tidy( () => { 
+                                   const resized = imageToTensor(my_image);
+                                   const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
+                                   my_image.activation = truncatedMobileNet.predict(batched).dataSync();
+                                   pro.value += 1;
+                                 }
+                                 )
+                               );
+            prom.then( (foo) => {
+                console.log(foo, tf.memory());
+              });
+          } else {
+            tf.tidy( () => { 
+                const resized = imageToTensor(my_image);
+                const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
+                my_image.activation = truncatedMobileNet.predict(batched).dataSync();
+                pro.value += 1;
+              });
+          }
         };
-
-        image.onload = onload(image);
-        */
+        image.onload = onload(image);        
       });
   }
 }
@@ -107,34 +125,43 @@ async function stopit() {
 
 async function loadit2() {
   allow_training = true;
-  let model2 = tf.sequential({
-   layers: [
+
+  const layers = [
        // Flattens the input to a vector so we can use it in a dense layer. While
        // technically a layer, this only performs a reshape (and has no training
        // parameters).
        tf.layers.flatten({
         inputShape: truncatedMobileNet.outputs[0].shape.slice(1)
-         }),
-       
-       // Layer 1.
-       tf.layers.dense({
-        units: DENSE_SIZE, // TBD:
-        activation: 'relu',
-        kernelInitializer: 'varianceScaling',
-        useBias: true,
-        name: 'my_dense',
-         }),
-       
-       // Layer 2. The number of units of the last layer should correspond
-       // to the number of classes we want to predict.
-       tf.layers.dense({
-        units: NUM_CLASSES,
-        kernelInitializer: 'varianceScaling',
-        useBias: false,
-        activation: 'softmax',
-        name: 'my_softmax'
-         })
-           ]
+         })];
+
+  for (let i = 1; i <= 3; i++) {
+    const n = getInteger("hidden" + i);
+    console.log("DENSE", i, n);
+    if (n <= 0) {
+      continue;
+    }
+    const dense = tf.layers.dense(
+        {
+       units: n,
+       activation: 'relu',
+       kernelInitializer: 'varianceScaling',
+       useBias: true,
+       name: ('my_dense' + i)
+        });
+    layers.push(dense);
+  }
+  layers.push(
+      tf.layers.dense(
+          {
+                units: NUM_CLASSES,
+                kernelInitializer: 'varianceScaling',
+                useBias: false,
+                activation: 'softmax',
+                name: 'my_softmax'
+                }));
+  
+  let model2 = tf.sequential({
+   layers: layers
     });
   const surface = { tab: 'Model Summary', name: 'MyModel' };
   tfvis.show.modelSummary(surface, model2);
@@ -143,8 +170,8 @@ async function loadit2() {
 
   let s = { tab: 'Details', name: 'my_softmax'};
   tfvis.show.layer(s, model2.getLayer('my_softmax'));
-  s = { tab: 'Details', name: 'my_dense'};
-  tfvis.show.layer(s, model2.getLayer('my_dense'));  
+  //s = { tab: 'Details', name: 'my_dense'};
+  //tfvis.show.layer(s, model2.getLayer('my_dense'));  
 
   const lr = getNumber("learning_rate");
   console.log("LR", lr);
@@ -162,37 +189,23 @@ async function loadit2() {
   }
 
   let cur_image = 0;
+
+  console.log("NEW/1", tf.memory());
   for (var label = 0; label < NUM_CLASSES; label++) {
-    console.log("label ", label);
-    let div = document.getElementById("preview" + (label + 1));
-    let ch = div.childNodes;
-    for (let i = 0; i < ch.length; i++) {
-      cur_image += 1;
-      if (i % mod == 0) {
-        mod *= 2;
-        console.log("Loop MEM", tf.memory());
+    const y = tf.tidy(
+        () => tf.oneHot(tf.tensor1d([label]).toInt(), NUM_CLASSES));
+    const ydata = y.dataSync();
+    tf.dispose(y); 
+    for (var seq = 0; ; seq++) {
+      var img = document.getElementById("img_" + label + "_" + seq);
+      if (img == null) {
+        break;
       }
-      const div2 = ch[i];
-      const img2 = div2.childNodes[0];
-      // activation: [1, 7, 7, 256], float32
-      // data() -> Float32Array(12544)
-      const activation = tf.tidy( () => {
-          const resized = imageToTensor(img2);
-          const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
-          return truncatedMobileNet.predict(batched); // activation
-        });
-
-      xs_all.push(activation.dataSync());
-      const y = tf.tidy(
-          () => tf.oneHot(tf.tensor1d([label]).toInt(), NUM_CLASSES));
-
-
-      //Int32Array[2]
-      ys_all.push(y.dataSync());
-      tf.dispose([activation, y]);
+      xs_all.push(img.activation);
+      ys_all.push(ydata);
     }
   }
-  console.log("MEM Loop end", tf.memory());
+  console.log("NEW/2", tf.memory());  
 
   shuffleArrays(xs_all, ys_all);
 
@@ -210,7 +223,7 @@ async function loadit2() {
   const stop = xs_train.length % BATCH_SIZE == 0 ? xs_train.length : xs_train.length - BATCH_SIZE;
 
   const p_epoch = document.getElementById("p_epoch");
-  p_epoch.max = EPOCHS;
+  p_epoch.max = getInteger("epochs");
   const p_batch = document.getElementById("p_batch");
   p_batch.max = xs_train.length / BATCH_SIZE;
   const losses = new Array();
@@ -218,7 +231,7 @@ async function loadit2() {
   const accuracys = new Array();
   let batch_number = 0;
 
-  for (var epoch = 0; epoch < EPOCHS; epoch++) {
+  for (var epoch = 0; epoch < p_epoch.max; epoch++) {
     p_epoch.value = epoch + 1;
     shuffleArrays(xs_train, ys_train);
     let sum_loss = 0.0;
@@ -249,7 +262,7 @@ async function loadit2() {
 
     // begin validation
     const vstop = xs_validation.length % BATCH_SIZE == 0 ? xs_validation.length : xs_validation.length - BATCH_SIZE;
-    console.log("xxx_val", xs_validation.length, vstop);
+
     let num_right = 0;
     let num_wrong = 0;
     let num = 0;
@@ -356,6 +369,10 @@ async function init() {
 
 function getNumber(id) {
   return Number(document.getElementById(id).value);
+}
+
+function getInteger(id) {
+  return Math.round(Number(document.getElementById(id).value));
 }
 
 // Initialize the application.
