@@ -1,0 +1,21 @@
+div.item {
+    vertical-align: top;
+    display: inline-block;
+    text-align: center;
+    width: 224px;
+}
+img {
+    background-color: grey;
+    width:  224px;
+    height: 224px;
+}
+.caption {
+    text-align: center;
+    display: block;
+    border: 1px gray dotted;
+    background-color: black;
+    color: white;
+    font-family: monospace;
+    font-size: 90%;
+    width: 224px;
+}

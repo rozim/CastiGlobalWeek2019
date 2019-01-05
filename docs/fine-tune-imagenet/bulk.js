@@ -2,12 +2,12 @@
 let mymodel = null;
 const CANVAS_SIZE = 224;  // Matches the input size of MobileNet.
 
-
 let fullMobileNet = null;
 const normalizationOffset = tf.scalar(127.5);
 
 const rows = new Map(); // id -> element
 const images = new Map();  // id -> []
+const predictions = new Map();  // id -> []
 const freq = new Map();
 
 document.getElementById("select1").onchange = function(evt) {
@@ -44,16 +44,20 @@ function addUploadedImages(files, preview, classNumber) {
           tf.tidy( () => { 
               const resized = imageToTensor(my_image);
               const batched = resized.reshape([1, CANVAS_SIZE, CANVAS_SIZE, 3]);
-              const imagenet = tf.argMax(fullMobileNet.predict(batched), 1).dataSync()[0];
-              const pretty = simplify(IMAGENET[imagenet]);
+              const softmaxes = fullMobileNet.predict(batched).dataSync();
+              const index = tf.argMax(softmaxes).dataSync()[0];
+              const prediction = softmaxes[index];
+              const pretty = simplify(IMAGENET[index]);
               const row_id = "row_" + pretty;
               let row;
               if (!images.has(row_id)) {
                 console.log("NEW ROW", row_id);
                 images.set(row_id, []);
+                predictions.set(row_id, []);                
                 freq.set(row_id, 0);
               }
               images.get(row_id).push(my_image);
+              predictions.get(row_id).push(prediction);
               freq.set(row_id, freq.get(row_id) + 1);
               pro.value += 1;
               
@@ -81,8 +85,28 @@ function addUploadedImages(files, preview, classNumber) {
                     row = rows.get(row_id);
                   }
                   const imgs = images.get(row_id);
+                  const preds = predictions.get(row_id);
+                  const tuples = [];
                   for (var j = 0; j < imgs.length; j++) {
-                    row.appendChild(imgs[j]);
+                    tuples.push([preds[j], imgs[j]]);
+                  }
+                  tuples.sort(function(a, b) {
+                      a = a[0];
+                      b = b[0];
+
+                      return a > b ? -1 : (a < b ? 1 : 0);
+                    });
+                  for (var j = 0; j < imgs.length; j++) {
+                    const pred = Math.round(tuples[j][0] * 100.0) + "%";
+                    const img = tuples[j][1];
+                    const container = document.createElement("div");
+                    container.className = "item";
+                    const caption = document.createElement("span");
+                    caption.className = "caption";
+                    caption.innerHTML = pred;
+                    container.appendChild(img);
+                    container.appendChild(caption);                   
+                    row.appendChild(container);
                   }
                 }
               }
