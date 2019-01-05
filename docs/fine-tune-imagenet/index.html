@@ -22,14 +22,18 @@
   <body>
 
     <h1>Label 1</h1>
+    <button class="toggle" onclick="toggle(this, 'label1');">hide</button>
+    <div id="label1">
     <input type="file" id="select1" multiple>
-    <progress id="p_1"></progress>
     <div class="scrolling-wrapper-flexbox" id="preview1"></div>
+    </div>
 
     <h1>Label 2</h1>
+    <button class="toggle" onclick="toggle(this, 'label2');">hide</button>
+    <div id="label2">
     <input type="file" id="select2" multiple>
-    <progress id="p_2"></progress>
     <div class="scrolling-wrapper-flexbox" id="preview2"></div>
+    </div>
 
     <button name="" onclick="loadit2()">Train</button>
     <progress id="p_init"></progress>

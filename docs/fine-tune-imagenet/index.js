@@ -34,13 +34,8 @@ function addUploadedImages(files, preview, classNumber) {
     [].forEach.call(files, readAndPreview);
   }
   */
-  const n = "p_" + (classNumber+1);
-  const p = document.getElementById(n);
-  console.log("xx", n, p);
 
-  p.max = files.length;
   for (let i = 0; i < files.length; i++) {
-    p.value = i;    
     readAndPreview(files[i]);
   }
 
@@ -51,9 +46,6 @@ function addUploadedImages(files, preview, classNumber) {
        height: CANVAS_SIZE
      }, function(blob, didItResize) {
         let image = new Image();
-        //image.onload = function() {
-          //const resized = imageToTensor(image)
-        //};
         image.src = URL.createObjectURL(blob);
         image.title = file.name;
         image.className = "train-image";
@@ -280,6 +272,28 @@ function imageToTensor(image) {
         normalized, [CANVAS_SIZE, CANVAS_SIZE], alignCorners);
   }
   return resized;
+}
+
+function toggle(but, id) {
+  var el = document.getElementById(id);
+
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    but.innerHTML = "hide";
+  } else {
+    el.style.display = 'none';
+    but.innerHTML = "show";    
+  }
+  console.log(but);
+}
+
+function show(but, id) {
+  document.getElementById(id).style.display = 'block';
+  console.log(but);
+}
+
+function hide(but, id) {
+  document.getElementById(id).style.display = 'none';
 }
 
 async function init() {
