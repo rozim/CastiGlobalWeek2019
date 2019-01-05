@@ -28,3 +28,9 @@
       border: 1px #333 solid;
       padding: 10px;
 }
+
+
+.command {
+         font-weight: bold;
+         font-size: 110%;
+}

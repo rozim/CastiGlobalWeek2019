@@ -7,8 +7,9 @@ const CANVAS_SIZE = 224;  // Matches the input size of MobileNet.
 const NUM_CLASSES = 2;
 let truncatedMobileNet = null;
 const normalizationOffset = tf.scalar(127.5);
-const BATCH_SIZE = 32;
-const EPOCHS = 10;
+const BATCH_SIZE = 8;
+const EPOCHS = 100;
+const PICK = 0.85;
 let global_model2;
 
 const LEARNING_RATE = 0.0001;
@@ -140,8 +141,8 @@ async function loadit2() {
   const optimizer = tf.train.adam(LEARNING_RATE);
   model2.compile({optimizer: optimizer, loss: 'categoricalCrossentropy'});
 
-  let xs = new Array();
-  let ys = new Array();
+  let xs_all = new Array();
+  let ys_all = new Array();
   console.log("MEM Loop begin", tf.memory());
   let mod = 16;
 
@@ -172,50 +173,56 @@ async function loadit2() {
           return truncatedMobileNet.predict(batched); // activation
         });
 
-      xs.push(activation.dataSync());
+      xs_all.push(activation.dataSync());
       const y = tf.tidy(
           () => tf.oneHot(tf.tensor1d([label]).toInt(), NUM_CLASSES));
-      if (i == 0) {
-        console.log('y hot', y, y.dataSync());
-        y.print(true);
-      }
+
 
       //Int32Array[2]
-      ys.push(y.dataSync());
+      ys_all.push(y.dataSync());
       tf.dispose([activation, y]);
     }
   }
-  console.log("MEM Loop end", tf.memory());  
+  console.log("MEM Loop end", tf.memory());
+
+  shuffleArrays(xs_all, ys_all);
+
+  const pick = Math.ceil(PICK * xs_all.length);
+  const xs_train = xs_all.slice(0, pick);
+  const ys_train = ys_all.slice(0, pick);
+  const xs_validation = xs_all.slice(pick, xs_all.length);
+  const ys_validation = ys_all.slice(pick, ys_all.length);
+  console.log("PICK", pick, xs_train.length, xs_validation.length, xs_all.length);  
+  xs_all = undefined;
+  ys_all = undefined;
 
   console.log("Calling fit()");
 
-  const stop = xs.length % BATCH_SIZE == 0 ? xs.length : xs.length - BATCH_SIZE;
+  const stop = xs_train.length % BATCH_SIZE == 0 ? xs_train.length : xs_train.length - BATCH_SIZE;
 
   const p_epoch = document.getElementById("p_epoch");
   p_epoch.max = EPOCHS;
   const p_batch = document.getElementById("p_batch");
-  p_batch.max = xs.length / BATCH_SIZE;
+  p_batch.max = xs_train.length / BATCH_SIZE;
   const losses = new Array();
   const batch_losses = new Array();
   const times = new Array();
+  const accuracys = new Array();
   let batch_number = 0;
   for (var epoch = 0; epoch < EPOCHS; epoch++) {
     p_epoch.value = epoch + 1;
-    shuffleArrays(xs, ys);
+    shuffleArrays(xs_train, ys_train);
     let sum_loss = 0.0;
     const t1 = new Date().getTime();
     for (var start = 0; start < stop; start += BATCH_SIZE) {
       p_batch.value = start / BATCH_SIZE;
-      const bx = xs.slice(start, start + BATCH_SIZE);
-      const by = ys.slice(start, start + BATCH_SIZE);
+      const bx = xs_train.slice(start, start + BATCH_SIZE);
+      const by = ys_train.slice(start, start + BATCH_SIZE);
   
       const bxt = tf.tidy( () => tf.concat(bx).as4D(BATCH_SIZE, 7, 7, 256));
       const byt = tf.tidy( () => tf.concat(by).asType('float32').as2D(BATCH_SIZE, NUM_CLASSES));
 
-      if (start == 0) {
-        console.log('y', epoch, byt.dataSync());
-        byt.print(true);
-      }
+
       await model2.trainOnBatch(bxt, byt).then(loss =>
         {
           sum_loss += loss;
@@ -231,30 +238,60 @@ async function loadit2() {
             });
           tfvis.render.linechart(data, surface);          
         });
-      if (start == 0) {
-        tf.tidy( () => {
-            const bxt = tf.concat(bx).as4D(BATCH_SIZE, 7, 7, 256);
-            console.log("before");
-            model2.predictOnBatch(bxt).print();
-            console.log("after");
-          });
-      }
-    }
+    } // end of one epoch of training loop
 
     const t2 = new Date().getTime();
     times.push({x: epoch, y: (t2 - t1) / 1000.0});
     losses.push({x: epoch, y: sum_loss});
 
+    // begin validation
+
+    const vstop = xs_validation.length % BATCH_SIZE == 0 ? xs_validation.length : xs_validation.length - BATCH_SIZE;
+    console.log("xxx_val", xs_validation.length, vstop);
+    let num_right = 0;
+    let num_wrong = 0;
+    let num = 0;
+    for (var start = 0; start < vstop; start += BATCH_SIZE) {
+      tf.tidy( () => {
+          const bx = xs_validation.slice(start, start + BATCH_SIZE);
+          const by = ys_validation.slice(start, start + BATCH_SIZE);
+          const bxt = tf.concat(bx).as4D(BATCH_SIZE, 7, 7, 256);
+          const byt = tf.concat(by).asType('float32').as2D(BATCH_SIZE, NUM_CLASSES);
+
+          const softmaxes = model2.predictOnBatch(bxt);
+          const pred = tf.argMax(softmaxes, 1);
+          const goal = tf.argMax(byt, 1);
+          const eq = tf.equal(pred, goal);
+          const right = tf.sum(eq);
+          const nright = right.dataSync()[0];
+
+          num_right += nright;
+          num_wrong += BATCH_SIZE - nright;
+          num += BATCH_SIZE;
+        });
+    }
+    const accuracy = num_right / (num_right + num_wrong);
+    accuracys.push({x: epoch, y: accuracy});
+    console.log("VAL", num_right, num_wrong, accuracy, num);
+    // end validation
+
+    {
+      const series = ['Accuracy'];      
+      const data = { values: [accuracys], series};
+      const surface = tfvis.visor().surface({ tab: 'Validation', name: 'Accuracy',
+                                            styles: { height: 200, maxHeight: 200}});
+      tfvis.render.linechart(data, surface);
+    }
     {
       const series = ['Loss'];
-      const data = { values: [losses], series }
+      const data = { values: [losses], series };
       const surface = tfvis.visor().surface({ tab: 'Training', name: 'Epoch/Loss',
                                             styles: { height: 200, maxHeight: 200}});
       tfvis.render.linechart(data, surface);
     }
     {
       const series = ['Times'];
-      const data = { values: [times], series }
+      const data = { values: [times], series };
       const surface = tfvis.visor().surface({ tab: 'Training', name: 'Epoch/Time',
                                             styles: { height: 200, maxHeight: 200}});
       tfvis.render.linechart(data, surface);
@@ -262,6 +299,7 @@ async function loadit2() {
 
     console.log("EPOCH FINISHED", epoch, "sum_loss", sum_loss, tf.memory(), (t2-t1));    
   }
+  console.log("TRAINING FINISHED");
 }
 
 function imageToTensor(image) {
