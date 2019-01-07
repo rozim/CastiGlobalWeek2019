@@ -63,3 +63,5 @@ typings/
 *~
 *.pyc
 #*#
+_site
+Gemfile.lock
