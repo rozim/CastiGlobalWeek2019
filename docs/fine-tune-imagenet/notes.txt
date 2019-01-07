@@ -1,0 +1,21 @@
+https://github.com/tensorflow/tfjs-examples/blob/master/mnist-node/data.js
+const images = [];
+  let index = headerBytes;
+  while (index < buffer.byteLength) {
+    const array = new Float32Array(recordBytes);
+    for (let i = 0; i < recordBytes; i++) {
+      // Normalize the pixel values into the 0-1 interval, from
+      // the original 0-255 interval.
+      array[i] = buffer.readUInt8(index++) / 255;
+    }
+    images.push(array);
+  }
+
+  assert.equal(images.length, headerValues[1]);
+  return images;
+}
+
+------------------------------------------------------------
+similar for labels
+------------------------------------------------------------
+

@@ -1,0 +1,32 @@
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+
+    <title>Fine Tune Imagenet with canned, preloaded images</title>
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.14.1"> </script>
+
+  </head>
+
+  <body>
+
+    <h1>Label 1: San Francisco</h1>
+    <input type="file" id="select1" multiple>
+    <div class="scrolling-wrapper-flexbox" id="preview1"></div>
+
+    <h1>Label 2: Las Vegas</h1>
+    <input type="file" id="select2" multiple>
+    <div class="scrolling-wrapper-flexbox" id="preview2"></div>
+
+    <button name="" onclick="loadit2()">Train</button>
+
+    <script src="ImageTools.js"></script>
+    <script src="index.js"></script>
+    <script src="load-canned-images.js"></script>
+
+  </body>
+
+</html>

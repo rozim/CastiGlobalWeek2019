@@ -1,0 +1,200 @@
+// import * as tf from '@tensorflow/tfjs';
+// import {ControllerDataset} from './controller_dataset';
+
+// https://github.com/tensorflow/tfjs-examples/blob/master/simple-object-detection/train.js
+
+let mymodel = null;
+const CANVAS_SIZE = 224;  // Matches the input size of MobileNet.
+const NUM_CLASSES = 2;
+const controllerDataset = new ControllerDataset(NUM_CLASSES);
+
+// Name prefixes of layers that will be unfrozen during fine-tuning.
+// const topLayerGroupNames = ['conv_pw_11'];
+
+// Name of the layer that will become the top layer of the truncated base.
+// const topLayerName =
+//`${topLayerGroupNames[topLayerGroupNames.length - 1]}_relu`;
+
+/*
+console.log("Loading");
+mobilenet.load().then(model => {
+    mymodel = model;
+    console.log("Loaded");
+  });
+*/
+
+document.getElementById("select1").onchange = function(evt) {
+  doit(this.files, document.querySelector("#preview1"));
+}
+
+document.getElementById("select2").onchange = function(evt) {
+  doit(this.files, document.querySelector("#preview2"));
+}
+
+function doit(files, preview) {
+  if (files) {
+    [].forEach.call(files, readAndPreview);
+  }
+
+  function readAndPreview(file) {
+    // console.log("LOAD ", file);
+    ImageTools.resize(file, {
+       width: CANVAS_SIZE,
+       height: CANVAS_SIZE
+     }, function(blob, didItResize) {
+        let image = new Image();
+        image.src = URL.createObjectURL(blob);
+        image.title = file.name;
+        image.className = "train-image";
+
+        let div = document.createElement("div");
+        div.className = "card";
+        div.appendChild(image);
+        preview.appendChild(div);
+      });
+  }
+}
+
+
+function b2() {
+  console.log("b2");
+  let div = document.getElementById("preview2");
+  let ch = div.childNodes;
+  for (let i = 0; i < ch.length; i++) {
+    let div2 = ch[i];
+    let img2 = div2.childNodes[0];
+    mymodel.classify(img2, /*topk*/1).then(predictions => {
+        console.log("pred: ", predictions);
+      });
+  }
+}
+
+async function loadTruncatedMobileNet() {
+  const mobilenet = await tf.loadModel(
+      'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json');
+
+  // Return a model that outputs an internal activation.
+  const layer = mobilenet.getLayer('conv_pw_13_relu');
+  return tf.model({inputs: mobilenet.inputs, outputs: layer.output});
+}
+
+async function loadit2() {
+  const truncatedMobileNet = await loadTruncatedMobileNet();
+
+  let model2 = tf.sequential({
+   layers: [
+       // Flattens the input to a vector so we can use it in a dense layer. While
+       // technically a layer, this only performs a reshape (and has no training
+       // parameters).
+       tf.layers.flatten({
+        inputShape: truncatedMobileNet.outputs[0].shape.slice(1)
+         }),
+       // Layer 1.
+       tf.layers.dense({
+        units: 10, // TBD: 
+        activation: 'relu',
+        kernelInitializer: 'varianceScaling',
+        useBias: true
+         }),
+       // Layer 2. The number of units of the last layer should correspond
+       // to the number of classes we want to predict.
+       tf.layers.dense({
+        units: NUM_CLASSES,
+        kernelInitializer: 'varianceScaling',
+        useBias: false,
+        activation: 'softmax'
+         })
+           ]
+    });
+
+  const optimizer = tf.train.adam(1e-3);
+  model2.compile({optimizer: optimizer, loss: 'categoricalCrossentropy'});
+  model2.summary();
+  console.log("XXX");
+  truncatedMobileNet.summary();
+
+  
+}
+
+
+
+function buildNewHead(inputShape) {
+  const newHead = tf.sequential();
+  newHead.add(tf.layers.flatten({inputShape}));
+  //newHead.add(tf.layers.dense({units: 200, activation: 'relu'})); // TBD?
+  newHead.add(tf.layers.dense({units: 2}));  // <-- TBD, #labels
+  return newHead;
+}
+
+function customLossFunction(yTrue, yPred) {
+  return tf.tidy(() => {
+      // Scale the the first column (0-1 shape indicator) of `yTrue` in order
+      // to ensure balanced contributions to the final loss value
+      // from shape and bounding-box predictions.
+      return tf.metrics.meanSquaredError(yTrue.mul(LABEL_MULTIPLIER), yPred);
+    });
+}
+
+async function buildObjectDetectionModel() {
+  const {truncatedBase, fineTuningLayers} = await loadTruncatedBase();
+
+  // Build the new head model.
+  const newHead = buildNewHead(truncatedBase.outputs[0].shape.slice(1));
+  const newOutput = newHead.apply(truncatedBase.outputs[0]);
+  const model = tf.model({inputs: truncatedBase.inputs, outputs: newOutput});
+
+  return {model, fineTuningLayers};
+}
+
+
+/*
+async function loadTruncatedBase() {
+  const mobilenet = await tf.loadModel(
+      'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json');
+
+  console.log('mobilenet', mobilenet);
+  mobilenet.summary();
+
+  // Return a model that outputs an internal activation.
+  const fineTuningLayers = [];
+
+  // TBD: this is conv_pw_11_relu
+  // TBD: may want conv_preds instead, and no fine tuning layers
+  const layer = mobilenet.getLayer(topLayerName);
+    const truncatedBase =
+        tf.model({inputs: mobilenet.inputs, outputs: layer.output});
+    // Freeze the model's layers.
+    for (const layer of truncatedBase.layers) {
+      layer.trainable = false;
+      for (const groupName of topLayerGroupNames) {
+        if (layer.name.indexOf(groupName) === 0) {
+          fineTuningLayers.push(layer);
+          break;
+        }
+      }
+    }
+
+    tf.util.assert(
+        fineTuningLayers.length > 1,
+        `Did not find any layers that match the prefixes ${topLayerGroupNames}`);
+    return {truncatedBase, fineTuningLayers};
+}
+*/
+
+/*
+async function loadit() {
+  const {model, fineTuningLayers} = await buildObjectDetectionModel();
+  console.log('doit', model, fineTuningLayers);
+  model.compile({loss: customLossFunction, optimizer: tf.train.rmsprop(5e-3)});
+  model.summary();
+  mymodel = model;
+
+  // later need
+  for (const layer of fineTuningLayers) {
+    //layer.trainable = true;
+    console.log('layer: ', layer);
+  }
+  // also need to enable softmax
+}
+*/
+
