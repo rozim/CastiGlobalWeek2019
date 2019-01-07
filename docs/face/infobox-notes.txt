@@ -1,0 +1,4 @@
+this  seems to work
+https://en.wikipedia.org/w/index.php?title=Woodrow_Wilson&action=raw
+
+doesn't work https://en.wikipedia.org/w/index.php?action=raw&title=Template:Infobox%20hydrogen
