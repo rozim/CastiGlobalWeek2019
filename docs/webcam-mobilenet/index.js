@@ -51,9 +51,7 @@ function step() {
 
   const img = tf.fromPixels(canvas).toFloat();
 
-
   waiting = true;
-
 
   for (let i = 0; i < 3; i++) {
     document.getElementById("c" + i).innerHTML = '?';
