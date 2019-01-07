@@ -1,0 +1,32 @@
+
+------------------------------------------------------------
+Articles:
+
+Skin Color
+Recognizing Deep Fakes
+
+------------------------------------------------------------
+Demos:
+
+My webcam
+My transfer learning
+
+Posenet?
+Madewithgoogle?
+
+------------------------------------------------------------
+Discussion:
+
+        Lifelong relationship with a "bot"
+
+------------------------------------------------------------
+Industry:
+
+        Trend: commodification
+
+        Software Engineering vs Data Science
+
+        5 minute guide to interviewing
+
+        The Golden Rule
+
