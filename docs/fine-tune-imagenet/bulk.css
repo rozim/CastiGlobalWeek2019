@@ -25,12 +25,15 @@ img {
 
 .row-label {
     font-size: larger;
+    width: 100%;
+    max-width: 200px;
+    display: inline-block;
+    /*     float: right; */
 }
 
 figure {
   text-align: center;
   border: thin silver solid;
-
 }
 
 figcaption {

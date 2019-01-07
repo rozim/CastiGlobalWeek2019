@@ -69,11 +69,8 @@ function addUploadedImages(files, preview, classNumber) {
                   const n = sorted[i][1]; // freq
 
                   if (!rows.has(row_id)) {
-                    const t = document.createElement("span");
-                    t.style.width = "200px";
-                    t.style.maxWidth = "200px";
-                    t.style.display = "block";
-                    //t.className = "row-label";
+                    const t = document.createElement("div");
+                    t.className = "row-label";
                     t.innerHTML = "<b>" + row_id.substring(4) + " (" + images.get(row_id).length + ") " + "</b>";
                     
                     row = document.createElement("div");
