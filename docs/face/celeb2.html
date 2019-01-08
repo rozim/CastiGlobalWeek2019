@@ -3,30 +3,78 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-
+    <link rel="icon" href="https://www.castilleja.org/uploaded/favicon.ico">
     <title>Celebrities</title>
 
     <script src="face-api.js"></script>
     <link rel="stylesheet" href="face.css">
+    <link rel="stylesheet" href="celeb-webcam.css"/>
   </head>
 
   <body>
     <h1>Celeb Faces</h1>
 
-    <img id="nixon" width=256 height=256 src="jewel.jpg">
-    <br/>
-    <progress id="pro"></progress>
-    <br/>
-    <div id="container"/>
+    <table>
+      <tr>
+        <td>
+          <b>Webcam</b>
+        <td>
+        <td>
+          <div id="video-container">
+            <video autoplay="true" id="videoElement"></video>
+          </div>
+        </td>
+        <td>
+          <canvas id="canvas"></canvas>
+        </td>
+        <td>
+          <div id="webcam-best"/>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <b>Jewel</b>
+        <td>
+        <td>
+          &nbsp;
+        </td>
+        <td>
+          <img id="nixon" width=256 height=256 src="jewel.jpg">
+        </td>
+        <td>
+          <div id="jewel-best"/>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <b>Upload</b>
+        <td>
+        <td>
+          <input type="file" id="upload">
+        </td>
+        <td>
+          <div id="upload-preview"/>
+        </td>
+        <td>
+          <div id="upload-best"/>
+        </td>
+      </tr>
+    </table>
+
+    <br clear="all"/>
+    <label><div><div id=loading>Loading</div><progress id="pro"></progress></label>
+    <br clear="all"/>
+    <div id="container">...</container>
     <br/>
     <div id="best"></div>
     <br/>
     <p/>
 
-
-
+    <script src="ImageTools.js"></script>
     <script src="celeb-names2.js"></script>
     <script src="celeb2.js"></script>
+    <script src="celeb2-webcam.js"></script>
   </body>
 
 </html>
