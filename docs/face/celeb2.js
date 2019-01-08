@@ -20,7 +20,7 @@ document.getElementById("upload").onchange = function(evt) {
        width: CANVAS_SIZE,
        height: CANVAS_SIZE
      }, function(blob, didItResize) {
-        let image = new Image();
+        const image = element("upload-preview");
         //image.id = ("img_" + cn + "_" + seq);
         //image.className = "train-image";
         image.src = URL.createObjectURL(blob);
@@ -28,41 +28,42 @@ document.getElementById("upload").onchange = function(evt) {
         //image.width = CANVAS_SIZE;
         image.height = CANVAS_SIZE;
 
-        const preview = element("upload-preview");
-        let container = element("upload-container");
-        if (container) {
-          container.parentNode.removeChild(container);
-        }
-        container = document.createElement("div");
-        container.appendChild(image);
-        preview.appendChild(container);
-
         const onload = (my_image) => (event) => {
 
+          munch_image(my_image, "upload-best");
+          /*
           faceapi.detectAllFaces(my_image).withFaceLandmarks().withFaceDescriptors().then((fullFaceDescriptions) => {
               console.log("onload", fullFaceDescriptions);
               const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, maxDescriptorDistance);
               const results = fullFaceDescriptions.map(fd => faceMatcher.findBestMatch(fd.descriptor));
               const url = "celebrities/" + results[0].label + ".jpg";
 
-              let container = element("upload-best");
-              let best = document.getElementById("upload-match");
-              if (best) {
-                best.parentNode.removeChild(best);
-              }
-              best = document.createElement("img");
+              let best = element("upload-best");
               best.src = url;
               best.width = best.height = 256;
               best.title = results[0].label;
-              container.appendChild(best);
             }
             );
+          */
         }
         image.onload = onload(image);
       }
       );
   };
 };
+
+
+function upload(url) {
+  console.log("upload", url);
+  element("upload-best").src = "";
+  let preview = element("upload-preview");
+  preview.src = url;
+  preview.height = CANVAS_SIZE;
+  preview.onload = function() {
+      munch_image(preview, "upload-best");
+  };
+}
+
 
 async function init() {
   await faceapi.loadSsdMobilenetv1Model('models/');
@@ -94,7 +95,7 @@ async function init() {
     }
 
     const link = document.createElement("a");
-    img.width = img.height = 64;
+    img.height = 96;
     img.title = label;
     img.border = 0;
     link.appendChild(img);
@@ -113,28 +114,6 @@ async function init() {
   console.log("OK after", ((new Date().getTime() - t1) / 1000.0).toFixed(2));
 
   lfd = labeledFaceDescriptors;
-
-  const input = document.getElementById("nixon");
-  let fullFaceDescriptions = await faceapi.detectAllFaces(input).withFaceLandmarks().withFaceDescriptors();
-  ffd = fullFaceDescriptions;
-
-  let cur_ffd = labeledFaceDescriptors.slice(0); // clone
-
-  const faceMatcher = new faceapi.FaceMatcher(cur_ffd, maxDescriptorDistance);
-  const results = await fullFaceDescriptions.map(fd => faceMatcher.findBestMatch(fd.descriptor));
-
-  console.log("results", results);
-  console.log("results", results[0]);
-  console.log("results", results[0].toString());
-  fresults = results;
-
-  const url = "celebrities/" + results[0].label + ".jpg";
-  const best = document.getElementById("best");
-  const img = document.createElement("img");
-  img.src = url;
-  img.title = results[0].label;
-  img.height = CANVAS_SIZE;
-  best.appendChild(img);
 
   element("loading").style.display = "none";
 
@@ -155,6 +134,22 @@ function shuffleArray(a1) {
 function element(id) {
   return document.getElementById(id);
 }
+
+function munch_image(my_image, best_id) {
+  faceapi.detectAllFaces(my_image).withFaceLandmarks().withFaceDescriptors().then((fullFaceDescriptions) => {
+      console.log("onload", fullFaceDescriptions);
+      const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, maxDescriptorDistance);
+      const results = fullFaceDescriptions.map(fd => faceMatcher.findBestMatch(fd.descriptor));
+      const url = "celebrities/" + results[0].label + ".jpg";
+
+      let best = element(best_id);
+      best.src = url;
+      best.height = CANVAS_SIZE;
+      best.title = results[0].label;
+    }
+    )
+      };
+
 
 
 init();

@@ -12,6 +12,7 @@ const CELEBS = [
     "Halle_Berry",
     "Jennifer_Hudson",
     "Octavia_Spencer",
+    "Maria_Mutola",
 
     "Adriana_Lima",
     "Amanda_Seyfried",
