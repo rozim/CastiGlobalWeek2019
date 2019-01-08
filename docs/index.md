@@ -2,6 +2,8 @@
 
 [Bulk upload images and classify with Imagenet](fine-tune-imagenet/bulk.html)
 
+[Face Recognition with Celebrities](face/celeb2.html)
+
 ### Not really ready...
 [Fine Tune Imagenet](fine-tune-imagenet/)
 
