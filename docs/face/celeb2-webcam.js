@@ -1,10 +1,12 @@
 
 const video = document.querySelector("#videoElement");
+/*
 video.addEventListener('play', () => {
     console.log("play...");
     window.setInterval(grabFrame, 1000);
   }
   );
+*/
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -21,6 +23,6 @@ if (navigator.mediaDevices.getUserMedia) {
 
 function grabFrame() {
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  var myImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  //var myImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
 

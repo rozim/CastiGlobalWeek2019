@@ -25,10 +25,13 @@
           </div>
         </td>
         <td>
+          <button onclick="start_video_countdown()">Snap</button>
+          <div id="video-countdown">...</div>
+          <div style='clear:both'></div>
           <canvas id="canvas"></canvas>
         </td>
         <td>
-          <div id="webcam-best"/>
+          <img id="webcam-best"/>
         </td>
       </tr>
 
@@ -62,7 +65,16 @@
     </table>
 
     <br clear="all"/>
-    <label><div><div id=loading>Loading</div><progress id="pro"></progress></label>
+    <table>
+      <tr>
+        <td>
+          <progress id="pro"></progress>
+          </td>
+        <td>
+          <div id=loading>Loading</div>
+          </td>
+      </tr>
+    </table>
     <br clear="all"/>
     <div id="container">...</container>
     <br/>

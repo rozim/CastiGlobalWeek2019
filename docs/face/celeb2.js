@@ -60,7 +60,7 @@ function upload(url) {
   preview.src = url;
   preview.height = CANVAS_SIZE;
   preview.onload = function() {
-      munch_image(preview, "upload-best");
+    munch_image(preview, "upload-best");
   };
 }
 
@@ -115,7 +115,7 @@ async function init() {
 
   lfd = labeledFaceDescriptors;
 
-  element("loading").style.display = "none";
+  element("loading").innerHTML = "Loaded " + labeledFaceDescriptors.length;
 
   /*
   cur_ffd = cur_ffd.filter(function(value, index, arr){
@@ -149,6 +149,30 @@ function munch_image(my_image, best_id) {
     }
     )
       };
+
+
+let remain = 99;
+function start_video_countdown() {
+
+  const id = element("video-countdown");
+
+  remain = 4;
+  decr();
+
+  function decr() {
+    remain -= 1;
+
+    if (remain > 0) {
+      id.innerHTML = remain;
+      window.setTimeout(decr, 1000);
+    } else {
+      id.innerHTML = "";
+      grabFrame();
+      munch_image(video, "webcam-best");
+      id.InnerHTML = "";
+    }
+  }
+}
 
 
 

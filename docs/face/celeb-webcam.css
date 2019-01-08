@@ -5,11 +5,16 @@ video {
 }
 
 #canvas {
+        padding: 5px;
     margin: 0px;
     width: 224px;
     height: 224px;
     border: 2px #333 solid;
-    float: left;
+
+}
+
+#oldcanvas {
+         float: left;
     overflow: hidden;
 }
 
@@ -17,4 +22,14 @@ video {
     width: 224px;
     height: 224px;
     background-color: #666;
+}
+
+#video-countdown {
+font-weight: bold;
+font-color: blue;
+align: bottom;
+margin: 25px;
+border: 3px #8FBC8F solid;
+padding: 10px;
+width: 50px;
 }
