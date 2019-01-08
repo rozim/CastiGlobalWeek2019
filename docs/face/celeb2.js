@@ -25,7 +25,7 @@ document.getElementById("upload").onchange = function(evt) {
         //image.className = "train-image";
         image.src = URL.createObjectURL(blob);
         image.title = file.name;
-        image.width = CANVAS_SIZE;
+        //image.width = CANVAS_SIZE;
         image.height = CANVAS_SIZE;
 
         const preview = element("upload-preview");
@@ -38,16 +38,13 @@ document.getElementById("upload").onchange = function(evt) {
         preview.appendChild(container);
 
         const onload = (my_image) => (event) => {
-          console.log("onload");
 
           faceapi.detectAllFaces(my_image).withFaceLandmarks().withFaceDescriptors().then((fullFaceDescriptions) => {
-              //let fullFaceDescriptions = faceapi.detectAllFaces(my_image).withFaceLandmarks().withFaceDescriptors();
-              //let fullFaceDescriptions = hack;
               console.log("onload", fullFaceDescriptions);
               const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, maxDescriptorDistance);
               const results = fullFaceDescriptions.map(fd => faceMatcher.findBestMatch(fd.descriptor));
               const url = "celebrities/" + results[0].label + ".jpg";
-              console.log("onload", url);
+
               let container = element("upload-best");
               let best = document.getElementById("upload-match");
               if (best) {
@@ -107,7 +104,9 @@ async function init() {
     container.appendChild(link);
 
     const faceDescriptors = [fullFaceDescription.descriptor];
-    console.log(label, "done", ((new Date().getTime() - t1) / 1000.0).toFixed(2));
+    if (i % 10 == 0) {
+      console.log(label, "done", ((new Date().getTime() - t1) / 1000.0).toFixed(2));
+    }
     labeledFaceDescriptors.push(new faceapi.LabeledFaceDescriptors(label, faceDescriptors));
   }
 
@@ -121,28 +120,29 @@ async function init() {
 
   let cur_ffd = labeledFaceDescriptors.slice(0); // clone
 
-  for (let num = 0; num < 3; num++) {
-    //console.log("cur", cur_ffd);
-    //const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, maxDescriptorDistance);
-    const faceMatcher = new faceapi.FaceMatcher(cur_ffd, maxDescriptorDistance);
-    const results = await fullFaceDescriptions.map(fd => faceMatcher.findBestMatch(fd.descriptor));
+  const faceMatcher = new faceapi.FaceMatcher(cur_ffd, maxDescriptorDistance);
+  const results = await fullFaceDescriptions.map(fd => faceMatcher.findBestMatch(fd.descriptor));
 
-    console.log("results", results);
-    console.log("results", results[0]);
-    console.log("results", results[0].toString());
-    fresults = results;
+  console.log("results", results);
+  console.log("results", results[0]);
+  console.log("results", results[0].toString());
+  fresults = results;
 
-    const url = "celebrities/" + results[0].label + ".jpg";
-    const best = document.getElementById("best");
-    const img = document.createElement("img");
-    img.src = url;
-    img.title = results[0].label;
-    best.appendChild(img);
+  const url = "celebrities/" + results[0].label + ".jpg";
+  const best = document.getElementById("best");
+  const img = document.createElement("img");
+  img.src = url;
+  img.title = results[0].label;
+  img.height = CANVAS_SIZE;
+  best.appendChild(img);
 
-    cur_ffd = cur_ffd.filter(function(value, index, arr){
-        return value.label != results[0].label;
-      });
-  }
+  element("loading").style.display = "none";
+
+  /*
+  cur_ffd = cur_ffd.filter(function(value, index, arr){
+      return value.label != results[0].label;
+    });
+  */
 }
 
 function shuffleArray(a1) {

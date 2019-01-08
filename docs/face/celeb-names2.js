@@ -1,4 +1,18 @@
 const CELEBS = [
+    "Cardi_B",
+    "Jessica_Simpson",
+    "Melania_Trump",
+    "Katherine_McNamara",
+    "Priyanka_Chopra",
+    "Anuska_Sharma",
+    "Nicki_Minaj",
+    "Alexandra_Daddario",
+    "Alice_Braga",
+    "Elizabeth_Beisel",
+    "Halle_Berry",
+    "Jennifer_Hudson",
+    "Octavia_Spencer",
+
     "Adriana_Lima",
     "Amanda_Seyfried",
     "Amandla_Stenberg",
